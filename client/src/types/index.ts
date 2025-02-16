@@ -21,4 +21,6 @@ export interface TableData {
 export interface DatabaseError {
     message: string;
     code?: string;
-} 
+}
+
+export type ConnectionType = 'ngrok' | 'direct'; 
