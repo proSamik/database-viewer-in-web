@@ -2,11 +2,12 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { TableViewerState } from '@/types';
 import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { EditRowDialog } from './EditRowDialog';
+import { Switch } from '@headlessui/react';
 
 interface Props {
     tableName: string;
@@ -108,6 +109,14 @@ export function TableViewer({ tableName, onReset }: Props) {
         mode: 'create' | 'edit';
         data?: Record<string, any>;
     }>({ isOpen: false, mode: 'create' });
+    const [editingCell, setEditingCell] = useState<{
+        rowId: string | number;
+        column: string;
+        value: any;
+    } | null>(null);
+
+    // Add this state for page input
+    const [pageInput, setPageInput] = useState<string>((page + 1).toString());
 
     // Update the state setters with proper typing
     const setColumnVisibility = (
@@ -389,6 +398,121 @@ export function TableViewer({ tableName, onReset }: Props) {
         }
     };
 
+    // Add cell update handler
+    const handleCellUpdate = async (rowId: string | number, column: string, value: any) => {
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/rows/${rowId}/cells/${column}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value }),
+                }
+            );
+
+            if (!response.ok) throw new Error('Failed to update cell');
+            
+            // Refetch the data
+            await queryClient.invalidateQueries({
+                queryKey: ['tableData', tableName]
+            });
+            
+            setEditingCell(null);
+        } catch (error) {
+            console.error('Failed to update cell:', error);
+        }
+    };
+
+    // Add cell renderer
+    const renderCell = (row: any, column: any) => {
+        const isEditing = editingCell?.rowId === row.id && editingCell?.column === column.name;
+        const value = row[column.name];
+
+        if (isEditing) {
+            switch (column.dataType.toLowerCase()) {
+                case 'boolean':
+                    return (
+                        <Switch
+                            checked={value}
+                            onChange={(checked) => handleCellUpdate(row.id, column.name, checked)}
+                            className={`${
+                                value ? 'bg-blue-600' : 'bg-gray-200'
+                            } relative inline-flex h-6 w-11 items-center rounded-full`}
+                        >
+                            <span className={`${
+                                value ? 'translate-x-6' : 'translate-x-1'
+                            } inline-block h-4 w-4 transform rounded-full bg-white transition`} />
+                        </Switch>
+                    );
+                case 'timestamp with time zone':
+                case 'timestamp without time zone':
+                case 'timestamp':
+                case 'date':
+                    return (
+                        <input
+                            type="datetime-local"
+                            value={formatDateForInput(new Date(value))}
+                            onChange={(e) => handleCellUpdate(row.id, column.name, e.target.value)}
+                            className="w-full p-1 border rounded"
+                            autoFocus
+                        />
+                    );
+                default:
+                    return (
+                        <input
+                            type={getInputType(column.dataType)}
+                            value={value || ''}
+                            onChange={(e) => handleCellUpdate(row.id, column.name, e.target.value)}
+                            className="w-full p-1 border rounded"
+                            autoFocus
+                            onBlur={() => setEditingCell(null)}
+                        />
+                    );
+            }
+        }
+
+        return (
+            <div
+                className="cursor-pointer hover:bg-gray-50 p-1 rounded"
+                onClick={() => setEditingCell({ rowId: row.id, column: column.name, value })}
+            >
+                {formatCellValue(value, column.dataType)}
+            </div>
+        );
+    };
+
+    // Add this function to handle page input changes
+    const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setPageInput(value);
+    };
+
+    // Add this function to handle page input submission
+    const handlePageSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newPage = parseInt(pageInput, 10);
+        if (isNaN(newPage)) {
+            setPageInput((page + 1).toString());
+            return;
+        }
+
+        // Validate page range
+        if (newPage < 1) {
+            setPage(0);
+            setPageInput("1");
+        } else if (newPage > totalPages) {
+            setPage(totalPages - 1);
+            setPageInput(totalPages.toString());
+        } else {
+            setPage(newPage - 1);
+        }
+    };
+
+    // Update useEffect to sync page input with page state
+    useEffect(() => {
+        setPageInput((page + 1).toString());
+    }, [page]);
+
     if (schemaLoading || dataLoading) {
         return (
             <div className="flex justify-center items-center h-96">
@@ -422,6 +546,53 @@ export function TableViewer({ tableName, onReset }: Props) {
                 return String(value);
         }
     };
+
+    // Helper function for date formatting
+    function formatDateForInput(date: Date): string {
+        return date.toISOString().slice(0, 16);
+    }
+
+    // Helper function to get default values for non-nullable fields
+    function getDefaultValue(dataType: string) {
+        switch (dataType.toLowerCase()) {
+            case 'integer':
+            case 'bigint':
+            case 'smallint':
+            case 'numeric':
+            case 'decimal':
+                return 0;
+            case 'boolean':
+                return false;
+            case 'timestamp':
+            case 'timestamp without time zone':
+            case 'timestamp with time zone':
+            case 'date':
+                return new Date();
+            default:
+                return '';
+        }
+    }
+
+    // Helper function to get input type based on data type
+    function getInputType(dataType: string): string {
+        switch (dataType.toLowerCase()) {
+            case 'integer':
+            case 'bigint':
+            case 'smallint':
+            case 'numeric':
+            case 'decimal':
+                return 'number';
+            case 'boolean':
+                return 'checkbox';
+            case 'timestamp with time zone':
+            case 'timestamp without time zone':
+            case 'timestamp':
+            case 'date':
+                return 'datetime-local';
+            default:
+                return 'text';
+        }
+    }
 
     return (
         <div className="flex flex-col w-full h-full">
@@ -642,27 +813,7 @@ export function TableViewer({ tableName, onReset }: Props) {
                                             maxWidth: '200px'
                                         }}
                                     >
-                                        <div className="relative">
-                                            <div 
-                                                className={`${getWrappingClass(column.name)} transition-all duration-200`}
-                                                style={{ 
-                                                    maxWidth: '100%'
-                                                }}
-                                            >
-                                                {formatCellValue(row[column.name], column.name)}
-                                            </div>
-                                            <button
-                                                onClick={() => copyToClipboard(row[column.name], `${row.id}-${column.name}`)}
-                                                className="absolute top-0 right-0 p-1 bg-white/80 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100"
-                                                title="Copy to clipboard"
-                                            >
-                                                {copiedCell === `${row.id}-${column.name}` ? (
-                                                    <CheckIcon className="h-4 w-4 text-green-500" />
-                                                ) : (
-                                                    <ClipboardIcon className="h-4 w-4 text-gray-500" />
-                                                )}
-                                            </button>
-                                        </div>
+                                        {renderCell(row, column)}
                                     </td>
                                 ))}
                             </tr>
@@ -673,14 +824,14 @@ export function TableViewer({ tableName, onReset }: Props) {
 
             {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
-                <div className="flex items-center">
+                <div className="flex items-center space-x-4">
                     <select
                         value={pageSize}
                         onChange={(e) => {
                             setPageSize(Number(e.target.value));
                             setPage(0);
                         }}
-                        className="border border-gray-300 rounded-md text-sm p-2 mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 rounded-md text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {[10, 25, 50, 100].map((size) => (
                             <option key={size} value={size}>
@@ -688,24 +839,56 @@ export function TableViewer({ tableName, onReset }: Props) {
                             </option>
                         ))}
                     </select>
-                    <span className="text-sm text-gray-700">
-                        Page {page + 1} of {totalPages}
-                    </span>
+
+                    <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-700">Page</span>
+                        <form onSubmit={handlePageSubmit} className="flex items-center space-x-2">
+                            <input
+                                type="number"
+                                min="1"
+                                max={totalPages}
+                                value={pageInput}
+                                onChange={handlePageInputChange}
+                                onBlur={handlePageSubmit}
+                                className="w-16 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">of {totalPages}</span>
+                        </form>
+                    </div>
                 </div>
+
                 <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => setPage(0)}
+                        disabled={page === 0}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        title="First page"
+                    >
+                        ««
+                    </button>
                     <button
                         onClick={() => setPage(p => Math.max(0, p - 1))}
                         disabled={page === 0}
                         className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        title="Previous page"
                     >
-                        Previous
+                        «
                     </button>
                     <button
                         onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                         disabled={page >= totalPages - 1}
                         className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        title="Next page"
                     >
-                        Next
+                        »
+                    </button>
+                    <button
+                        onClick={() => setPage(totalPages - 1)}
+                        disabled={page >= totalPages - 1}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        title="Last page"
+                    >
+                        »»
                     </button>
                 </div>
             </div>
@@ -729,25 +912,4 @@ export function TableViewer({ tableName, onReset }: Props) {
             )}
         </div>
     );
-}
-
-// Helper function to get default values for non-nullable fields
-function getDefaultValue(dataType: string) {
-    switch (dataType.toLowerCase()) {
-        case 'integer':
-        case 'bigint':
-        case 'smallint':
-        case 'numeric':
-        case 'decimal':
-            return 0;
-        case 'boolean':
-            return false;
-        case 'timestamp':
-        case 'timestamp without time zone':
-        case 'timestamp with time zone':
-        case 'date':
-            return new Date();
-        default:
-            return '';
-    }
 } 
