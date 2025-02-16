@@ -82,6 +82,7 @@ func registerRoutes(r *mux.Router, h *handlers.DatabaseHandler) {
 
 	// Database connection endpoints
 	api.HandleFunc("/connect", h.HandleConnect).Methods("POST", "OPTIONS")
+	api.HandleFunc("/connect/direct", h.HandleDirectConnect).Methods("POST", "OPTIONS")
 
 	// Table operations
 	api.HandleFunc("/tables", h.HandleListTables).Methods("GET", "OPTIONS")
