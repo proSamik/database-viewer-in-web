@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -311,11 +312,37 @@ func (h *DatabaseHandler) HandleUpdateCell(w http.ResponseWriter, r *http.Reques
 
 	vars := mux.Vars(r)
 	tableName := vars["table"]
-	id := vars["id"]
+	pkValue := vars["id"]
 	columnName := vars["column"]
 
-	if tableName == "" || id == "" || columnName == "" {
+	log.Printf("Attempting to update cell - Table: %s, Column: %s, PK Value: %s", tableName, columnName, pkValue)
+
+	if tableName == "" || pkValue == "" || columnName == "" {
+		log.Printf("Error: Missing required parameters - Table: %s, Column: %s, PK Value: %s", tableName, columnName, pkValue)
 		http.Error(w, "Table name, ID, and column name are required", http.StatusBadRequest)
+		return
+	}
+
+	// Get the primary key column name
+	schema, err := h.dbManager.GetTableSchema(tableName)
+	if err != nil {
+		log.Printf("Error getting table schema: %v", err)
+		http.Error(w, fmt.Sprintf("Failed to get table schema: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Find the primary key column
+	var pkColumn string
+	for _, col := range schema.Columns {
+		if col.IsPrimary {
+			pkColumn = col.Name
+			break
+		}
+	}
+
+	if pkColumn == "" {
+		log.Printf("Error: No primary key found for table %s", tableName)
+		http.Error(w, "No primary key found for table", http.StatusBadRequest)
 		return
 	}
 
@@ -323,15 +350,23 @@ func (h *DatabaseHandler) HandleUpdateCell(w http.ResponseWriter, r *http.Reques
 		Value interface{} `json:"value"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&cellData); err != nil {
+		log.Printf("Error decoding request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Update the cell
-	if err := h.dbManager.UpdateCell(tableName, id, columnName, cellData.Value); err != nil {
+	log.Printf("Updating cell - Table: %s, PK Column: %s, PK Value: %s, Column: %s, New Value: %v",
+		tableName, pkColumn, pkValue, columnName, cellData.Value)
+
+	// Update the cell using the primary key
+	if err := h.dbManager.UpdateCell(tableName, pkColumn, pkValue, columnName, cellData.Value); err != nil {
+		log.Printf("Error updating cell: %v", err)
 		http.Error(w, fmt.Sprintf("Failed to update cell: %v", err), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("Successfully updated cell - Table: %s, PK Column: %s, PK Value: %s, Column: %s",
+		tableName, pkColumn, pkValue, columnName)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
