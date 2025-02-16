@@ -23,4 +23,142 @@ body {
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
-} 
+}
+
+/* Custom scrollbar styles */
+.cell-content::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+    display: none;
+}
+
+.cell-content.show-scroll::-webkit-scrollbar {
+    display: block;
+}
+
+.cell-content::-webkit-scrollbar-track {
+    background: #EDF2F7;
+}
+
+.cell-content::-webkit-scrollbar-thumb {
+    background-color: #CBD5E0;
+    border-radius: 3px;
+}
+
+/* For Firefox */
+.cell-content {
+    scrollbar-width: none;
+}
+
+.cell-content.show-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E0 #EDF2F7;
+}
+
+/* Custom scrollbar styles */
+.overflow-hidden::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+    opacity: 0;
+}
+
+.overflow-auto::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+    opacity: 1;
+}
+
+.overflow-hidden::-webkit-scrollbar-track,
+.overflow-auto::-webkit-scrollbar-track {
+    background: #EDF2F7;
+}
+
+.overflow-hidden::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+    background-color: #CBD5E0;
+    border-radius: 3px;
+}
+
+/* For Firefox */
+.overflow-hidden,
+.overflow-auto {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E0 #EDF2F7;
+}
+
+/* Hide scrollbar by default */
+.overflow-hidden {
+    scrollbar-width: none;
+}
+
+/* Show scrollbar on hover */
+.group:hover .overflow-hidden {
+    scrollbar-width: thin;
+}
+
+/* Add these styles for truncate behavior */
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.truncate:hover {
+    white-space: normal;
+    overflow-x: auto;
+    text-overflow: clip;
+}
+
+/* Smooth transition for hover effect */
+.truncate, .truncate:hover {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Base styles for cells with overflow */
+.overflow-x-auto {
+    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+/* Show scrollbar on hover */
+.overflow-x-auto:hover {
+    scrollbar-width: thin;  /* Firefox */
+    -ms-overflow-style: auto;  /* IE and Edge */
+}
+
+.overflow-x-auto:hover::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+    width: 6px;
+}
+
+.overflow-x-auto:hover::-webkit-scrollbar-track {
+    background: #EDF2F7;
+}
+
+.overflow-x-auto:hover::-webkit-scrollbar-thumb {
+    background-color: #CBD5E0;
+    border-radius: 3px;
+}
+
+/* Truncate styles */
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.truncate:hover {
+    white-space: nowrap;  /* Keep it nowrap */
+    overflow-x: auto;
+    text-overflow: clip;
+    scrollbar-width: thin;
+}
+
+/* Remove all the other scrollbar-related styles that were previously added */ 
