@@ -88,4 +88,9 @@ func registerRoutes(r *mux.Router, h *handlers.DatabaseHandler) {
 	api.HandleFunc("/tables", h.HandleListTables).Methods("GET", "OPTIONS")
 	api.HandleFunc("/tables/{table}/schema", h.HandleTableSchema).Methods("GET", "OPTIONS")
 	api.HandleFunc("/tables/{table}", h.HandleTableData).Methods("GET", "OPTIONS")
+
+	// Add new CRUD endpoints
+	api.HandleFunc("/tables/{table}/rows", h.HandleCreateRow).Methods("POST", "OPTIONS")
+	api.HandleFunc("/tables/{table}/rows/{id}", h.HandleUpdateRow).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/tables/{table}/rows/{id}", h.HandleDeleteRow).Methods("DELETE", "OPTIONS")
 }
