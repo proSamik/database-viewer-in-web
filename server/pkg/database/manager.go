@@ -628,3 +628,33 @@ func (dm *DatabaseManager) DeleteRow(tableName string, id string) error {
 
 	return nil
 }
+
+// UpdateCell updates a single cell in the specified table
+func (dm *DatabaseManager) UpdateCell(tableName string, id string, columnName string, value interface{}) error {
+	if dm.currentDB == nil {
+		return fmt.Errorf("no database connection")
+	}
+
+	query := fmt.Sprintf(
+		"UPDATE %s SET %s = $1 WHERE id = $2",
+		pq.QuoteIdentifier(tableName),
+		pq.QuoteIdentifier(columnName),
+	)
+
+	// Execute the query
+	result, err := dm.currentDB.Exec(query, value, id)
+	if err != nil {
+		return fmt.Errorf("failed to update cell: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no row found with id %s", id)
+	}
+
+	return nil
+}
