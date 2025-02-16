@@ -304,3 +304,37 @@ func (h *DatabaseHandler) HandleDeleteRow(w http.ResponseWriter, r *http.Request
 		"message": "Row deleted successfully",
 	})
 }
+
+// HandleUpdateCell handles updating a single cell in a table
+func (h *DatabaseHandler) HandleUpdateCell(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	tableName := vars["table"]
+	id := vars["id"]
+	columnName := vars["column"]
+
+	if tableName == "" || id == "" || columnName == "" {
+		http.Error(w, "Table name, ID, and column name are required", http.StatusBadRequest)
+		return
+	}
+
+	var cellData struct {
+		Value interface{} `json:"value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&cellData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Update the cell
+	if err := h.dbManager.UpdateCell(tableName, id, columnName, cellData.Value); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update cell: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Cell updated successfully",
+	})
+}
