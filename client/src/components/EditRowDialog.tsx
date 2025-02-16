@@ -1,6 +1,7 @@
 import { Dialog } from '@headlessui/react';
 import { useState, useEffect } from 'react';
 import { TableSchema } from '@/types';
+import { Switch } from '@headlessui/react';
 
 interface Props {
     isOpen: boolean;
@@ -32,11 +33,7 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
             const defaultData: Record<string, any> = {};
             schema.columns.forEach(column => {
                 if (!column.isNullable && !column.isPrimary) {
-                    if (isTimestampType(column.dataType)) {
-                        defaultData[column.name] = formatDateForInput(new Date());
-                    } else {
-                        defaultData[column.name] = getDefaultValue(column.dataType);
-                    }
+                    defaultData[column.name] = getDefaultValue(column.dataType);
                 }
             });
             setFormData(defaultData);
@@ -52,12 +49,80 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
                 if (isTimestampType(column.dataType) && submissionData[column.name]) {
                     // Convert local datetime to ISO string for submission
                     submissionData[column.name] = new Date(submissionData[column.name]).toISOString();
+                } else if (column.dataType.toLowerCase() === 'boolean') {
+                    // Ensure boolean values are actually booleans
+                    submissionData[column.name] = Boolean(submissionData[column.name]);
+                } else if (isNumericType(column.dataType) && submissionData[column.name] !== '') {
+                    // Convert numeric strings to numbers
+                    submissionData[column.name] = Number(submissionData[column.name]);
                 }
             });
             await onSave(submissionData);
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to save');
+        }
+    };
+
+    const renderInput = (column: TableSchema['columns'][0]) => {
+        const value = formData[column.name];
+
+        switch (column.dataType.toLowerCase()) {
+            case 'boolean':
+                return (
+                    <Switch
+                        checked={Boolean(value)}
+                        onChange={(checked) => {
+                            setFormData(prev => ({
+                                ...prev,
+                                [column.name]: checked
+                            }));
+                        }}
+                        className={`${
+                            value ? 'bg-blue-600' : 'bg-gray-200'
+                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                    >
+                        <span className="sr-only">Use setting</span>
+                        <span
+                            className={`${
+                                value ? 'translate-x-6' : 'translate-x-1'
+                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                        />
+                    </Switch>
+                );
+            case 'timestamp':
+            case 'timestamp without time zone':
+            case 'timestamp with time zone':
+            case 'date':
+                return (
+                    <input
+                        type="datetime-local"
+                        value={value || ''}
+                        onChange={(e) => {
+                            setFormData(prev => ({
+                                ...prev,
+                                [column.name]: e.target.value
+                            }));
+                        }}
+                        required={!column.isNullable}
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                );
+            default:
+                return (
+                    <input
+                        type={getInputType(column.dataType)}
+                        value={value || ''}
+                        onChange={(e) => {
+                            setFormData(prev => ({
+                                ...prev,
+                                [column.name]: e.target.value
+                            }));
+                        }}
+                        required={!column.isNullable}
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                );
         }
     };
 
@@ -87,19 +152,9 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
                                 <div key={column.name} className="space-y-1">
                                     <label className="block text-sm font-medium text-gray-700">
                                         {column.name}
+                                        {!column.isNullable && <span className="text-red-500 ml-1">*</span>}
                                     </label>
-                                    <input
-                                        type={getInputType(column.dataType)}
-                                        value={formData[column.name] || ''}
-                                        onChange={(e) => {
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                [column.name]: e.target.value
-                                            }));
-                                        }}
-                                        required={!column.isNullable}
-                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                    />
+                                    {renderInput(column)}
                                 </div>
                             ))}
                         </form>
@@ -135,6 +190,11 @@ function isTimestampType(dataType: string): boolean {
     return type.includes('timestamp') || type === 'date';
 }
 
+function isNumericType(dataType: string): boolean {
+    const type = dataType.toLowerCase();
+    return ['integer', 'bigint', 'smallint', 'numeric', 'decimal'].includes(type);
+}
+
 function formatDateForInput(date: Date): string {
     // Format date to YYYY-MM-DDTHH:mm
     return date.toISOString().slice(0, 16);
@@ -145,6 +205,8 @@ function getInputType(dataType: string): string {
         case 'integer':
         case 'bigint':
         case 'smallint':
+        case 'numeric':
+        case 'decimal':
             return 'number';
         case 'boolean':
             return 'checkbox';
@@ -164,6 +226,8 @@ function getDefaultValue(dataType: string): any {
         case 'integer':
         case 'bigint':
         case 'smallint':
+        case 'numeric':
+        case 'decimal':
             return 0;
         case 'boolean':
             return false;
