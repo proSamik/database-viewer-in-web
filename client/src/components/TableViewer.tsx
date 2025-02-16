@@ -1,11 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useState, useCallback } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { TableViewerState } from '@/types';
-import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { EditRowDialog } from './EditRowDialog';
 
 interface Props {
     tableName: string;
@@ -79,6 +80,9 @@ type ColumnWidth = Record<string, number>;
 type TextWrapping = Record<string, 'wrap' | 'truncate' | 'normal'>;
 
 export function TableViewer({ tableName, onReset }: Props) {
+    // Add this near the top of the component
+    const queryClient = useQueryClient();
+
     // Replace useState with usePersistedState for states we want to persist
     const [tableState, setTableState] = usePersistedState<TableViewerState>('tableViewerState', {
         columnVisibility: {},
@@ -99,6 +103,11 @@ export function TableViewer({ tableName, onReset }: Props) {
         direction: 'asc' | 'desc' | null;
     }>({ column: null, direction: null });
     const [copiedCell, setCopiedCell] = useState<string | null>(null);
+    const [editDialog, setEditDialog] = useState<{
+        isOpen: boolean;
+        mode: 'create' | 'edit';
+        data?: Record<string, any>;
+    }>({ isOpen: false, mode: 'create' });
 
     // Update the state setters with proper typing
     const setColumnVisibility = (
@@ -316,6 +325,70 @@ export function TableViewer({ tableName, onReset }: Props) {
         }
     };
 
+    // Add these mutation functions
+    const handleCreateRow = async (data: Record<string, any>) => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/rows`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) throw new Error('Failed to create row');
+            
+            // Refetch the data
+            await queryClient.invalidateQueries({
+                queryKey: ['tableData', tableName]
+            });
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const handleUpdateRow = async (id: string, data: Record<string, any>) => {
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/rows/${id}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                }
+            );
+
+            if (!response.ok) throw new Error('Failed to update row');
+            
+            // Refetch the data
+            await queryClient.invalidateQueries({
+                queryKey: ['tableData', tableName]
+            });
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const handleDeleteRow = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this row?')) return;
+
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/rows/${id}`,
+                {
+                    method: 'DELETE',
+                }
+            );
+
+            if (!response.ok) throw new Error('Failed to delete row');
+            
+            // Refetch the data
+            await queryClient.invalidateQueries({
+                queryKey: ['tableData', tableName]
+            });
+        } catch (error) {
+            console.error('Failed to delete row:', error);
+        }
+    };
+
     if (schemaLoading || dataLoading) {
         return (
             <div className="flex justify-center items-center h-96">
@@ -352,6 +425,17 @@ export function TableViewer({ tableName, onReset }: Props) {
 
     return (
         <div className="flex flex-col w-full h-full">
+            {/* Add New Row button */}
+            <div className="mb-4">
+                <button
+                    onClick={() => setEditDialog({ isOpen: true, mode: 'create' })}
+                    className="flex items-center px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                    <PlusIcon className="w-4 h-4 mr-2" />
+                    Add New Row
+                </button>
+            </div>
+
             {/* Toolbar */}
             <div className="flex items-center space-x-4 mb-4 p-2 bg-white border rounded-lg">
                 {/* Column visibility toggle */}
@@ -459,9 +543,11 @@ export function TableViewer({ tableName, onReset }: Props) {
                 <table className="w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            {/* Copy column header */}
-                            <th className="w-10 px-2 py-3 sticky left-0 bg-gray-50">
-                                <div className="text-center text-xs text-gray-500">Copy</div>
+                            {/* Combined Actions column header */}
+                            <th className="w-24 px-4 py-3 sticky left-0 bg-gray-50 z-10">
+                                <div className="text-xs font-medium text-gray-500 uppercase">
+                                    Actions
+                                </div>
                             </th>
 
                             {schemaData?.columns.map((column, index) => !columnVisibility[column.name] && (
@@ -510,19 +596,39 @@ export function TableViewer({ tableName, onReset }: Props) {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {sortedRows.map((row, rowIndex) => (
                             <tr key={row.id || rowIndex} className="hover:bg-gray-50">
-                                {/* Copy button cell */}
-                                <td className="w-10 px-2 py-4 sticky left-0 bg-white">
-                                    <button
-                                        onClick={() => copyRowToClipboard(row)}
-                                        className="p-1 rounded hover:bg-gray-100"
-                                        title="Copy row"
-                                    >
-                                        {copiedCell === `row-${row.id}` ? (
-                                            <CheckIcon className="h-4 w-4 text-green-500" />
-                                        ) : (
-                                            <ClipboardIcon className="h-4 w-4 text-gray-500" />
-                                        )}
-                                    </button>
+                                {/* Combined Actions cell */}
+                                <td className="w-24 px-4 py-4 sticky left-0 bg-white z-10">
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={() => copyRowToClipboard(row)}
+                                            className="p-1 rounded hover:bg-gray-100"
+                                            title="Copy row"
+                                        >
+                                            {copiedCell === `row-${row.id}` ? (
+                                                <CheckIcon className="h-4 w-4 text-green-500" />
+                                            ) : (
+                                                <ClipboardIcon className="h-4 w-4 text-gray-500" />
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => setEditDialog({ 
+                                                isOpen: true, 
+                                                mode: 'edit', 
+                                                data: row 
+                                            })}
+                                            className="p-1 hover:bg-gray-100 rounded"
+                                            title="Edit row"
+                                        >
+                                            <PencilIcon className="w-4 h-4 text-gray-500" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteRow(row.id)}
+                                            className="p-1 hover:bg-gray-100 rounded"
+                                            title="Delete row"
+                                        >
+                                            <TrashIcon className="w-4 h-4 text-red-500" />
+                                        </button>
+                                    </div>
                                 </td>
 
                                 {/* Data cells */}
@@ -603,6 +709,24 @@ export function TableViewer({ tableName, onReset }: Props) {
                     </button>
                 </div>
             </div>
+
+            {/* Add EditRowDialog */}
+            {editDialog.isOpen && schemaData && (
+                <EditRowDialog
+                    isOpen={editDialog.isOpen}
+                    onClose={() => setEditDialog({ isOpen: false, mode: 'create' })}
+                    onSave={async (data) => {
+                        if (editDialog.mode === 'create') {
+                            await handleCreateRow(data);
+                        } else {
+                            await handleUpdateRow(editDialog.data?.id, data);
+                        }
+                    }}
+                    schema={schemaData}
+                    initialData={editDialog.data}
+                    mode={editDialog.mode}
+                />
+            )}
         </div>
     );
 }
