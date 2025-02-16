@@ -630,31 +630,38 @@ func (dm *DatabaseManager) DeleteRow(tableName string, id string) error {
 }
 
 // UpdateCell updates a single cell in the specified table
-func (dm *DatabaseManager) UpdateCell(tableName string, id string, columnName string, value interface{}) error {
+func (dm *DatabaseManager) UpdateCell(tableName string, pkColumn string, pkValue string, columnName string, value interface{}) error {
 	if dm.currentDB == nil {
 		return fmt.Errorf("no database connection")
 	}
 
 	query := fmt.Sprintf(
-		"UPDATE %s SET %s = $1 WHERE id = $2",
+		"UPDATE %s SET %s = $1 WHERE %s = $2",
 		pq.QuoteIdentifier(tableName),
 		pq.QuoteIdentifier(columnName),
+		pq.QuoteIdentifier(pkColumn),
 	)
 
+	log.Printf("Executing query: %s with values: [%v, %s]", query, value, pkValue)
+
 	// Execute the query
-	result, err := dm.currentDB.Exec(query, value, id)
+	result, err := dm.currentDB.Exec(query, value, pkValue)
 	if err != nil {
+		log.Printf("Error executing update query: %v", err)
 		return fmt.Errorf("failed to update cell: %v", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		log.Printf("Error checking rows affected: %v", err)
 		return fmt.Errorf("error checking rows affected: %v", err)
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("no row found with id %s", id)
+		log.Printf("No rows affected. No row found with %s = %s", pkColumn, pkValue)
+		return fmt.Errorf("no row found with %s = %s", pkColumn, pkValue)
 	}
 
+	log.Printf("Successfully updated cell. Rows affected: %d", rowsAffected)
 	return nil
 }
