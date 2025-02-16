@@ -399,40 +399,20 @@ export function TableViewer({ tableName, onReset }: Props) {
         }
     };
 
-    // Update the cell update handler
-    const handleCellUpdate = async (rowId: string | number, column: string, value: any) => {
-        try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/rows/${rowId}/cells/${column}`,
-                {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ value }),
-                }
-            );
-
-            if (!response.ok) throw new Error('Failed to update cell');
-            
-            // Refetch the data
-            await queryClient.invalidateQueries({
-                queryKey: ['tableData', tableName]
-            });
-            
-            setEditingCell(null);
-        } catch (error) {
-            console.error('Failed to update cell:', error);
-        }
+    // Add this helper function
+    const getPrimaryKeyColumn = (schema: TableSchema) => {
+        return schema.columns.find(col => col.isPrimary)?.name || 'id';
     };
 
     // Update the cell renderer
     const renderCell = (row: any, column: any) => {
-        const isEditing = editingCell?.rowId === row.id && editingCell?.column === column.name;
+        const isEditing = editingCell?.rowId === row[getPrimaryKeyColumn(schemaData!)] && editingCell?.column === column.name;
         const value = row[column.name];
 
         if (isEditing) {
             const handleConfirm = () => {
                 if (editingCell) {
-                    handleCellUpdate(row.id, column.name, editingCell.tempValue);
+                    handleCellUpdate(row[getPrimaryKeyColumn(schemaData!)], column.name, editingCell.tempValue);
                 }
             };
 
@@ -503,7 +483,7 @@ export function TableViewer({ tableName, onReset }: Props) {
             <div
                 className="cursor-pointer hover:bg-gray-50 p-1 rounded min-w-0"
                 onClick={() => setEditingCell({
-                    rowId: row.id,
+                    rowId: row[getPrimaryKeyColumn(schemaData!)],
                     column: column.name,
                     value: value,
                     tempValue: value
@@ -633,6 +613,30 @@ export function TableViewer({ tableName, onReset }: Props) {
     const isTimestampType = (dataType: string): boolean => {
         const type = dataType.toLowerCase();
         return type.includes('timestamp') || type === 'date';
+    };
+
+    // Update the cell update handler
+    const handleCellUpdate = async (pkValue: string | number, column: string, value: any) => {
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/rows/${pkValue}/cells/${column}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value }),
+                }
+            );
+
+            if (!response.ok) throw new Error('Failed to update cell');
+            
+            await queryClient.invalidateQueries({
+                queryKey: ['tableData', tableName]
+            });
+            
+            setEditingCell(null);
+        } catch (error) {
+            console.error('Failed to update cell:', error);
+        }
     };
 
     return (
