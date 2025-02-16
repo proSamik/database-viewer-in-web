@@ -517,3 +517,114 @@ func (dm *DatabaseManager) ConnectDirect(config DirectConnectionConfig) error {
 	dm.currentDB = db
 	return nil
 }
+
+// CreateRow creates a new row in the specified table
+func (dm *DatabaseManager) CreateRow(tableName string, data map[string]interface{}) error {
+	if dm.currentDB == nil {
+		return fmt.Errorf("no database connection")
+	}
+
+	// Build the INSERT query dynamically
+	columns := make([]string, 0, len(data))
+	values := make([]interface{}, 0, len(data))
+	placeholders := make([]string, 0, len(data))
+	i := 1
+
+	for column, value := range data {
+		columns = append(columns, pq.QuoteIdentifier(column))
+		values = append(values, value)
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i))
+		i++
+	}
+
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES (%s)",
+		pq.QuoteIdentifier(tableName),
+		strings.Join(columns, ", "),
+		strings.Join(placeholders, ", "),
+	)
+
+	// Execute the query
+	_, err := dm.currentDB.Exec(query, values...)
+	if err != nil {
+		return fmt.Errorf("failed to create row: %v", err)
+	}
+
+	return nil
+}
+
+// UpdateRow updates an existing row in the specified table
+func (dm *DatabaseManager) UpdateRow(tableName string, id string, data map[string]interface{}) error {
+	if dm.currentDB == nil {
+		return fmt.Errorf("no database connection")
+	}
+
+	// Build the UPDATE query dynamically
+	setValues := make([]string, 0, len(data))
+	values := make([]interface{}, 0, len(data))
+	i := 1
+
+	for column, value := range data {
+		if column != "id" { // Skip the ID field
+			setValues = append(setValues, fmt.Sprintf("%s = $%d", pq.QuoteIdentifier(column), i))
+			values = append(values, value)
+			i++
+		}
+	}
+
+	// Add ID as the last parameter
+	values = append(values, id)
+
+	query := fmt.Sprintf(
+		"UPDATE %s SET %s WHERE id = $%d",
+		pq.QuoteIdentifier(tableName),
+		strings.Join(setValues, ", "),
+		i,
+	)
+
+	// Execute the query
+	result, err := dm.currentDB.Exec(query, values...)
+	if err != nil {
+		return fmt.Errorf("failed to update row: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no row found with id %s", id)
+	}
+
+	return nil
+}
+
+// DeleteRow deletes a row from the specified table
+func (dm *DatabaseManager) DeleteRow(tableName string, id string) error {
+	if dm.currentDB == nil {
+		return fmt.Errorf("no database connection")
+	}
+
+	query := fmt.Sprintf(
+		"DELETE FROM %s WHERE id = $1",
+		pq.QuoteIdentifier(tableName),
+	)
+
+	// Execute the query
+	result, err := dm.currentDB.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete row: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no row found with id %s", id)
+	}
+
+	return nil
+}
