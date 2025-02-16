@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"dbviewer-saas/pkg/database"
 
@@ -151,4 +153,69 @@ func (h *DatabaseHandler) HandleTableSchema(w http.ResponseWriter, r *http.Reque
 	if err := json.NewEncoder(w).Encode(schema); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
 	}
+}
+
+// HandleDirectConnect handles direct database URL connections
+func (h *DatabaseHandler) HandleDirectConnect(w http.ResponseWriter, r *http.Request) {
+	// Handle CORS preflight
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		URL string `json:"url"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate URL
+	if req.URL == "" {
+		http.Error(w, "Database URL is required", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the database URL
+	dbURL, err := url.Parse(req.URL)
+	if err != nil {
+		http.Error(w, "Invalid database URL", http.StatusBadRequest)
+		return
+	}
+
+	// Extract credentials from the URL
+	username := ""
+	password := ""
+	if dbURL.User != nil {
+		username = dbURL.User.Username()
+		password, _ = dbURL.User.Password()
+	}
+
+	// Extract database name from path
+	dbName := strings.TrimPrefix(dbURL.Path, "/")
+
+	// Create connection config
+	config := database.DirectConnectionConfig{
+		Host:     dbURL.Hostname(),
+		Port:     dbURL.Port(),
+		User:     username,
+		Password: password,
+		DBName:   dbName,
+		SSLMode:  "require",
+	}
+
+	// Attempt to connect
+	if err := h.dbManager.ConnectDirect(config); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to connect to database: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Successfully connected to database",
+	})
 }
