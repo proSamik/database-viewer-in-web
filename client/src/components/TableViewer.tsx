@@ -3,6 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useState, useCallback } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
+import { TableViewerState } from '@/types';
+import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 interface Props {
     tableName: string;
@@ -70,15 +73,69 @@ const transformData = (rows: Record<string, any>[], schema: TableSchema) => {
     });
 };
 
+// Add these type definitions
+type ColumnVisibility = Record<string, boolean>;
+type ColumnWidth = Record<string, number>;
+type TextWrapping = Record<string, 'wrap' | 'truncate' | 'normal'>;
+
 export function TableViewer({ tableName, onReset }: Props) {
+    // Replace useState with usePersistedState for states we want to persist
+    const [tableState, setTableState] = usePersistedState<TableViewerState>('tableViewerState', {
+        columnVisibility: {},
+        columnWidths: {},
+        columnTextWrapping: {},
+        pageSize: 25,
+        selectedTable: tableName
+    });
+
     const [page, setPage] = useState(0);
-    const [pageSize, setPageSize] = useState(25);
-    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
-    const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
     const [highlightedCells, setHighlightedCells] = useState<Record<string, string>>({});
     const [searchText, setSearchText] = useState('');
     const [showColumnMenu, setShowColumnMenu] = useState(false);
     const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
+    const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{
+        column: string | null;
+        direction: 'asc' | 'desc' | null;
+    }>({ column: null, direction: null });
+    const [copiedCell, setCopiedCell] = useState<string | null>(null);
+
+    // Update the state setters with proper typing
+    const setColumnVisibility = (
+        newVisibility: ColumnVisibility | ((prev: ColumnVisibility) => ColumnVisibility)
+    ) => {
+        setTableState(prev => ({
+            ...prev,
+            columnVisibility: typeof newVisibility === 'function' 
+                ? newVisibility(prev.columnVisibility)
+                : newVisibility
+        }));
+    };
+
+    const setColumnWidths = (
+        newWidths: ColumnWidth | ((prev: ColumnWidth) => ColumnWidth)
+    ) => {
+        setTableState(prev => ({
+            ...prev,
+            columnWidths: typeof newWidths === 'function'
+                ? newWidths(prev.columnWidths)
+                : newWidths
+        }));
+    };
+
+    const setColumnTextWrapping = (
+        newWrapping: TextWrapping | ((prev: TextWrapping) => TextWrapping)
+    ) => {
+        setTableState(prev => ({
+            ...prev,
+            columnTextWrapping: typeof newWrapping === 'function'
+                ? newWrapping(prev.columnTextWrapping)
+                : newWrapping
+        }));
+    };
+
+    // Update references to the state throughout the component
+    const { columnVisibility, columnWidths, columnTextWrapping, pageSize } = tableState;
 
     // Fetch schema first
     const { data: schemaData, isLoading: schemaLoading } = useQuery<TableSchema>({
@@ -107,9 +164,9 @@ export function TableViewer({ tableName, onReset }: Props) {
         enabled: !!tableName && !!schemaData,
     });
 
-    // Toggle column visibility
+    // Update the toggle functions with proper typing
     const toggleColumnVisibility = (columnName: string) => {
-        setColumnVisibility(prev => ({
+        setColumnVisibility((prev: ColumnVisibility) => ({
             ...prev,
             [columnName]: !prev[columnName]
         }));
@@ -135,6 +192,129 @@ export function TableViewer({ tableName, onReset }: Props) {
             String(value).toLowerCase().includes(searchText.toLowerCase())
         )
     ) || [];
+
+    // Update the toggle functions with proper typing
+    const toggleColumnWrapping = (columnName: string) => {
+        setColumnTextWrapping((prev: TextWrapping) => {
+            const current = prev[columnName] || 'normal';
+            const next = current === 'normal' ? 'wrap' : 
+                        current === 'wrap' ? 'truncate' : 'normal';
+            return { ...prev, [columnName]: next };
+        });
+    };
+
+    // Get wrapping class based on column setting
+    const getWrappingClass = (columnName: string) => {
+        const wrapping = columnTextWrapping[columnName] || 'normal';
+        switch (wrapping) {
+            case 'wrap': 
+                return 'whitespace-normal break-words';
+            case 'truncate': 
+                return 'truncate';
+            case 'normal': 
+                return 'overflow-x-auto whitespace-nowrap';
+            default: 
+                return 'whitespace-nowrap';
+        }
+    };
+
+    // Add sorting function
+    const handleSort = (columnName: string) => {
+        setSortConfig(current => ({
+            column: columnName,
+            direction: 
+                current.column === columnName && current.direction === 'asc' 
+                    ? 'desc' 
+                    : 'asc'
+        }));
+    };
+
+    // Sort the filtered rows
+    const sortedRows = [...filteredRows].sort((a, b) => {
+        if (!sortConfig.column || !sortConfig.direction) return 0;
+        
+        const aVal = a[sortConfig.column];
+        const bVal = b[sortConfig.column];
+        
+        if (aVal === bVal) return 0;
+        if (aVal === null) return 1;
+        if (bVal === null) return -1;
+        
+        return (
+            (aVal < bVal ? -1 : 1) * 
+            (sortConfig.direction === 'asc' ? 1 : -1)
+        );
+    });
+
+    const resetTableState = () => {
+        setTableState({
+            columnVisibility: {},
+            columnWidths: {},
+            columnTextWrapping: {},
+            pageSize: 25,
+            selectedTable: tableName
+        });
+    };
+
+    // Update the width change handler
+    const handleColumnWidthChange = (columnName: string, width: number) => {
+        setColumnWidths((prev: ColumnWidth) => ({
+            ...prev,
+            [columnName]: width
+        }));
+    };
+
+    // Add this function to handle page size changes
+    const setPageSize = (size: number) => {
+        setTableState(prev => ({
+            ...prev,
+            pageSize: size
+        }));
+    };
+
+    // Update the copy function
+    const copyToClipboard = async (value: any, cellId: string) => {
+        try {
+            // Copy the original value
+            const textToCopy = value === null ? 'null' : 
+                typeof value === 'object' && value instanceof Date ? value.toISOString() : 
+                String(value);
+
+            await navigator.clipboard.writeText(textToCopy);
+            setCopiedCell(cellId);
+            setTimeout(() => {
+                setCopiedCell(null);
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+        }
+    };
+
+    // Update the copyRowToClipboard function
+    const copyRowToClipboard = async (row: Record<string, any>) => {
+        try {
+            // Filter out any UI-specific fields and copy original data
+            const rowText = Object.entries(row)
+                .filter(([key]) => key !== 'id' && !key.startsWith('_')) // Exclude UI-specific fields
+                .map(([key, value]) => {
+                    // Get original value without formatting
+                    if (value === null) return `${key}: null`;
+                    if (typeof value === 'object' && value instanceof Date) {
+                        return `${key}: ${value.toISOString()}`;
+                    }
+                    return `${key}: ${value}`;
+                })
+                .join('\n');
+
+            await navigator.clipboard.writeText(rowText);
+            setCopiedCell(`row-${row.id}`);
+            setTimeout(() => {
+                setCopiedCell(null);
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy row:', err);
+        }
+    };
 
     if (schemaLoading || dataLoading) {
         return (
@@ -213,20 +393,29 @@ export function TableViewer({ tableName, onReset }: Props) {
                     />
                 </div>
 
-                {/* Highlight tools */}
+                {/* Updated Highlight tools */}
                 <div className="relative">
                     <button 
-                        onClick={() => setSelectedColumn(selectedColumn ? null : '')}
+                        onClick={() => setShowHighlightMenu(!showHighlightMenu)}
                         className="px-3 py-2 text-sm border rounded-md hover:bg-gray-50"
                     >
                         Highlight
                     </button>
                     
-                    {selectedColumn !== null && (
+                    {showHighlightMenu && (
                         <div className="absolute z-10 mt-2 w-64 bg-white border rounded-lg shadow-lg right-0">
                             <div className="p-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-sm font-medium">Highlight Columns</h3>
+                                    <button 
+                                        onClick={() => setShowHighlightMenu(false)}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
                                 <select
-                                    value={selectedColumn}
+                                    value={selectedColumn || ''}
                                     onChange={(e) => setSelectedColumn(e.target.value)}
                                     className="w-full mb-2 p-2 border rounded-md"
                                 >
@@ -265,35 +454,109 @@ export function TableViewer({ tableName, onReset }: Props) {
                 </div>
             </div>
 
-            {/* Table */}
+            {/* Table with updated column widths and text wrapping */}
             <div className="overflow-x-auto shadow-md rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            {schemaData?.columns.map((column) => !columnVisibility[column.name] && (
+                            {/* Copy column header */}
+                            <th className="w-10 px-2 py-3 sticky left-0 bg-gray-50">
+                                <div className="text-center text-xs text-gray-500">Copy</div>
+                            </th>
+
+                            {schemaData?.columns.map((column, index) => !columnVisibility[column.name] && (
                                 <th
                                     key={column.name}
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    className="px-6 py-3 text-xs font-medium text-gray-500 uppercase"
                                 >
-                                    {column.name.split('_').map(word => 
-                                        word.charAt(0).toUpperCase() + word.slice(1)
-                                    ).join(' ')}
+                                    <div className="flex flex-col space-y-2">
+                                        {/* Header text */}
+                                        <div className="text-center">
+                                            <button 
+                                                onClick={() => handleSort(column.name)}
+                                                className="inline-flex items-center justify-center hover:text-gray-700"
+                                            >
+                                                {column.name.split('_').map(word => 
+                                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                                ).join(' ')}
+                                                {sortConfig.column === column.name && (
+                                                    <span className="ml-1">
+                                                        {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        {/* Controls */}
+                                        <div className="flex items-center justify-center space-x-2 text-xs">
+                                            <select
+                                                value={columnTextWrapping[column.name] || 'normal'}
+                                                onChange={(e) => setColumnTextWrapping((prev: TextWrapping) => ({
+                                                    ...prev,
+                                                    [column.name]: e.target.value as 'wrap' | 'truncate' | 'normal'
+                                                }))}
+                                                className="w-20 px-1 py-0.5 border rounded text-xs"
+                                            >
+                                                <option value="normal">Show all</option>
+                                                <option value="wrap">Wrap</option>
+                                                <option value="truncate">Truncate</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </th>
                             ))}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredRows.map((row, rowIndex) => (
+                        {sortedRows.map((row, rowIndex) => (
                             <tr key={row.id || rowIndex} className="hover:bg-gray-50">
+                                {/* Copy button cell */}
+                                <td className="w-10 px-2 py-4 sticky left-0 bg-white">
+                                    <button
+                                        onClick={() => copyRowToClipboard(row)}
+                                        className="p-1 rounded hover:bg-gray-100"
+                                        title="Copy row"
+                                    >
+                                        {copiedCell === `row-${row.id}` ? (
+                                            <CheckIcon className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <ClipboardIcon className="h-4 w-4 text-gray-500" />
+                                        )}
+                                    </button>
+                                </td>
+
+                                {/* Data cells */}
                                 {schemaData?.columns.map((column) => !columnVisibility[column.name] && (
                                     <td 
                                         key={column.name} 
-                                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                        className="px-6 py-4 text-sm text-gray-900 group"
                                         style={{
-                                            backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent'
+                                            backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent',
+                                            width: '200px', // Fixed width
+                                            maxWidth: '200px'
                                         }}
                                     >
-                                        {formatCellValue(row[column.name], column.name)}
+                                        <div className="relative">
+                                            <div 
+                                                className={`${getWrappingClass(column.name)} transition-all duration-200`}
+                                                style={{ 
+                                                    maxWidth: '100%'
+                                                }}
+                                            >
+                                                {formatCellValue(row[column.name], column.name)}
+                                            </div>
+                                            <button
+                                                onClick={() => copyToClipboard(row[column.name], `${row.id}-${column.name}`)}
+                                                className="absolute top-0 right-0 p-1 bg-white/80 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100"
+                                                title="Copy to clipboard"
+                                            >
+                                                {copiedCell === `${row.id}-${column.name}` ? (
+                                                    <CheckIcon className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <ClipboardIcon className="h-4 w-4 text-gray-500" />
+                                                )}
+                                            </button>
+                                        </div>
                                     </td>
                                 ))}
                             </tr>
