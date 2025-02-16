@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { useState, useCallback, useEffect } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { TableViewerState } from '@/types';
-import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { EditRowDialog } from './EditRowDialog';
 import { Switch } from '@headlessui/react';
 
@@ -113,6 +113,7 @@ export function TableViewer({ tableName, onReset }: Props) {
         rowId: string | number;
         column: string;
         value: any;
+        tempValue: any;
     } | null>(null);
 
     // Add this state for page input
@@ -398,7 +399,7 @@ export function TableViewer({ tableName, onReset }: Props) {
         }
     };
 
-    // Add cell update handler
+    // Update the cell update handler
     const handleCellUpdate = async (rowId: string | number, column: string, value: any) => {
         try {
             const response = await fetch(
@@ -423,60 +424,94 @@ export function TableViewer({ tableName, onReset }: Props) {
         }
     };
 
-    // Add cell renderer
+    // Update the cell renderer
     const renderCell = (row: any, column: any) => {
         const isEditing = editingCell?.rowId === row.id && editingCell?.column === column.name;
         const value = row[column.name];
 
         if (isEditing) {
-            switch (column.dataType.toLowerCase()) {
-                case 'boolean':
-                    return (
-                        <Switch
-                            checked={value}
-                            onChange={(checked) => handleCellUpdate(row.id, column.name, checked)}
-                            className={`${
-                                value ? 'bg-blue-600' : 'bg-gray-200'
-                            } relative inline-flex h-6 w-11 items-center rounded-full`}
+            const handleConfirm = () => {
+                if (editingCell) {
+                    handleCellUpdate(row.id, column.name, editingCell.tempValue);
+                }
+            };
+
+            const handleCancel = () => {
+                setEditingCell(null);
+            };
+
+            return (
+                <div className="flex items-center min-w-0 max-w-full">
+                    <div className="flex-1 min-w-0">
+                        {column.dataType.toLowerCase() === 'boolean' ? (
+                            <Switch
+                                checked={Boolean(editingCell?.tempValue)}
+                                onChange={(checked) => {
+                                    setEditingCell(prev => prev ? { ...prev, tempValue: checked } : null);
+                                }}
+                                className={`${
+                                    editingCell?.tempValue ? 'bg-blue-600' : 'bg-gray-200'
+                                } relative inline-flex h-6 w-11 items-center rounded-full`}
+                            >
+                                <span className={`${
+                                    editingCell?.tempValue ? 'translate-x-6' : 'translate-x-1'
+                                } inline-block h-4 w-4 transform rounded-full bg-white transition`} />
+                            </Switch>
+                        ) : isTimestampType(column.dataType) ? (
+                            <input
+                                type="datetime-local"
+                                value={editingCell?.tempValue || ''}
+                                onChange={(e) => {
+                                    setEditingCell(prev => prev ? { ...prev, tempValue: e.target.value } : null);
+                                }}
+                                className="w-full p-1 border rounded"
+                                autoFocus
+                            />
+                        ) : (
+                            <input
+                                type={getInputType(column.dataType)}
+                                value={editingCell?.tempValue || ''}
+                                onChange={(e) => {
+                                    setEditingCell(prev => prev ? { ...prev, tempValue: e.target.value } : null);
+                                }}
+                                className="w-full p-1 border rounded"
+                                autoFocus
+                            />
+                        )}
+                    </div>
+                    <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+                        <button
+                            onClick={handleConfirm}
+                            className="p-1 rounded hover:bg-green-50 text-green-600"
+                            title="Confirm"
                         >
-                            <span className={`${
-                                value ? 'translate-x-6' : 'translate-x-1'
-                            } inline-block h-4 w-4 transform rounded-full bg-white transition`} />
-                        </Switch>
-                    );
-                case 'timestamp with time zone':
-                case 'timestamp without time zone':
-                case 'timestamp':
-                case 'date':
-                    return (
-                        <input
-                            type="datetime-local"
-                            value={formatDateForInput(new Date(value))}
-                            onChange={(e) => handleCellUpdate(row.id, column.name, e.target.value)}
-                            className="w-full p-1 border rounded"
-                            autoFocus
-                        />
-                    );
-                default:
-                    return (
-                        <input
-                            type={getInputType(column.dataType)}
-                            value={value || ''}
-                            onChange={(e) => handleCellUpdate(row.id, column.name, e.target.value)}
-                            className="w-full p-1 border rounded"
-                            autoFocus
-                            onBlur={() => setEditingCell(null)}
-                        />
-                    );
-            }
+                            <CheckIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                            onClick={handleCancel}
+                            className="p-1 rounded hover:bg-red-50 text-red-600"
+                            title="Cancel"
+                        >
+                            <XMarkIcon className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            );
         }
 
         return (
             <div
-                className="cursor-pointer hover:bg-gray-50 p-1 rounded"
-                onClick={() => setEditingCell({ rowId: row.id, column: column.name, value })}
+                className="cursor-pointer hover:bg-gray-50 p-1 rounded min-w-0"
+                onClick={() => setEditingCell({
+                    rowId: row.id,
+                    column: column.name,
+                    value: value,
+                    tempValue: value
+                })}
             >
-                {formatCellValue(value, column.dataType)}
+                <div className="truncate">
+                    {formatCellValue(value, column.dataType)}
+                </div>
             </div>
         );
     };
@@ -593,6 +628,12 @@ export function TableViewer({ tableName, onReset }: Props) {
                 return 'text';
         }
     }
+
+    // Helper function to check timestamp type
+    const isTimestampType = (dataType: string): boolean => {
+        const type = dataType.toLowerCase();
+        return type.includes('timestamp') || type === 'date';
+    };
 
     return (
         <div className="flex flex-col w-full h-full">
@@ -806,14 +847,16 @@ export function TableViewer({ tableName, onReset }: Props) {
                                 {schemaData?.columns.map((column) => !columnVisibility[column.name] && (
                                     <td 
                                         key={column.name} 
-                                        className="px-6 py-4 text-sm text-gray-900 group"
+                                        className="px-6 py-4 text-sm text-gray-900 group relative"
                                         style={{
                                             backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent',
-                                            width: '200px', // Fixed width
-                                            maxWidth: '200px'
+                                            minWidth: '200px',
+                                            maxWidth: '300px'
                                         }}
                                     >
-                                        {renderCell(row, column)}
+                                        <div className="relative overflow-hidden">
+                                            {renderCell(row, column)}
+                                        </div>
                                     </td>
                                 ))}
                             </tr>
