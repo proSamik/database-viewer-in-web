@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ConnectionConfig } from '@/types';
+import { ConnectionConfig, ConnectionType } from '@/types';
 import { TableViewer } from '@/components/TableViewer';
 import { Check, Close, Edit } from '@mui/icons-material';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -81,11 +81,12 @@ export default function Home() {
         });
     };
 
-    const handleConnect = async (config: ConnectionConfig) => {
+    const handleConnect = async (config: ConnectionConfig, type: ConnectionType) => {
         setError(null);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/connect`, {
+            const endpoint = type === 'direct' ? '/api/connect/direct' : '/api/connect';
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -104,7 +105,7 @@ export default function Home() {
             setIsConnected(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
-            throw err; // Re-throw to let ConnectionForm handle the error state
+            throw err;
         }
     };
 
