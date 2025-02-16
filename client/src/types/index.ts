@@ -28,4 +28,12 @@ export type ConnectionType = 'ngrok' | 'direct';
 export interface HighlightConfig {
     column: string;
     color: string;
+}
+
+export interface TableViewerState {
+    columnVisibility: Record<string, boolean>;
+    columnWidths: Record<string, number>;
+    columnTextWrapping: Record<string, 'wrap' | 'truncate' | 'normal'>;
+    pageSize: number;
+    selectedTable: string;
 } 
