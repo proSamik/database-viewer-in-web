@@ -15,6 +15,24 @@ import (
 	"github.com/lib/pq"
 )
 
+// ConnectionConfig represents database connection parameters for ngrok connections
+type ConnectionConfig struct {
+	URL      string `json:"url"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+}
+
+// DirectConnectionConfig represents direct database connection parameters
+type DirectConnectionConfig struct {
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	DBName   string `json:"dbname"`
+	SSLMode  string `json:"sslmode"`
+}
+
 // DatabaseManager handles all database operations
 type DatabaseManager struct {
 	pool      *sql.DB
@@ -152,14 +170,6 @@ func (dm *DatabaseManager) ListTables() ([]string, error) {
 	}
 
 	return tables, nil
-}
-
-// ConnectionConfig represents database connection parameters
-type ConnectionConfig struct {
-	URL      string `json:"url"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"database"`
 }
 
 // GetTableColumns returns the column information for a given table
@@ -350,26 +360,9 @@ func (dm *DatabaseManager) GetTableDataPaginated(tableName string, page, pageSiz
 		return nil, fmt.Errorf("failed to get schema: %v", err)
 	}
 
-	// Calculate offset
 	offset := page * pageSize
-
-	// Use ORDER BY on primary key or first column for consistent pagination
-	var orderByClause string
-	primaryKey := ""
-	for _, col := range schema.Columns {
-		if col.IsPrimary {
-			primaryKey = col.Name
-			break
-		}
-	}
-	if primaryKey == "" && len(schema.Columns) > 0 {
-		primaryKey = schema.Columns[0].Name
-	}
-	orderByClause = fmt.Sprintf(" ORDER BY %s", pq.QuoteIdentifier(primaryKey))
-
-	query := fmt.Sprintf("SELECT * FROM %s%s LIMIT %d OFFSET %d",
+	query := fmt.Sprintf("SELECT * FROM %s LIMIT %d OFFSET %d",
 		pq.QuoteIdentifier(tableName),
-		orderByClause,
 		pageSize,
 		offset,
 	)
@@ -479,4 +472,48 @@ func getDefaultValue(dataType string) interface{} {
 	default:
 		return ""
 	}
+}
+
+// ConnectDirect establishes a direct connection to the specified database
+func (dm *DatabaseManager) ConnectDirect(config DirectConnectionConfig) error {
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		config.Host,
+		config.Port,
+		config.User,
+		config.Password,
+		config.DBName,
+		config.SSLMode,
+	)
+
+	// Try to connect
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Printf("Failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %v", err)
+	}
+
+	// Set connection pool settings
+	db.SetMaxOpenConns(dm.resources.MaxConnections)
+	db.SetMaxIdleConns(dm.resources.MaxIdleConnections)
+	db.SetConnMaxLifetime(15 * time.Minute)
+
+	// Test the connection
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return fmt.Errorf("failed to verify database connection: %v", err)
+	}
+
+	// Close existing connection if any
+	if dm.currentDB != nil {
+		if err := dm.currentDB.Close(); err != nil {
+			log.Printf("Warning: failed to close previous connection: %v", err)
+		}
+	}
+
+	dm.currentDB = db
+	return nil
 }
