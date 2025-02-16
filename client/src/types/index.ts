@@ -23,4 +23,9 @@ export interface DatabaseError {
     code?: string;
 }
 
-export type ConnectionType = 'ngrok' | 'direct'; 
+export type ConnectionType = 'ngrok' | 'direct';
+
+export interface HighlightConfig {
+    column: string;
+    color: string;
+} 
