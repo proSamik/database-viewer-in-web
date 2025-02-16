@@ -93,4 +93,7 @@ func registerRoutes(r *mux.Router, h *handlers.DatabaseHandler) {
 	api.HandleFunc("/tables/{table}/rows", h.HandleCreateRow).Methods("POST", "OPTIONS")
 	api.HandleFunc("/tables/{table}/rows/{id}", h.HandleUpdateRow).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/tables/{table}/rows/{id}", h.HandleDeleteRow).Methods("DELETE", "OPTIONS")
+
+	// Add cell update endpoint
+	api.HandleFunc("/tables/{table}/rows/{id}/cells/{column}", h.HandleUpdateCell).Methods("PUT", "OPTIONS")
 }
