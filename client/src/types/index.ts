@@ -36,4 +36,31 @@ export interface TableViewerState {
     columnTextWrapping: Record<string, 'wrap' | 'truncate' | 'normal'>;
     pageSize: number;
     selectedTable: string;
+}
+
+export interface TableRow {
+    id: string | number;
+    [key: string]: any;
+}
+
+export interface TableSchema {
+    columns: Array<{
+        name: string;
+        dataType: string;
+        isNullable: boolean;
+        isPrimary: boolean;
+    }>;
+}
+
+export interface TableResponse {
+    rows: TableRow[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+}
+
+export interface RowOperation {
+    type: 'create' | 'update' | 'delete';
+    status: 'pending' | 'success' | 'error';
+    message?: string;
 } 
