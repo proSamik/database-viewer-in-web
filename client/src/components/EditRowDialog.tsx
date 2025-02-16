@@ -1,5 +1,5 @@
 import { Dialog } from '@headlessui/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TableSchema } from '@/types';
 
 interface Props {
@@ -15,10 +15,46 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
     const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
     const [error, setError] = useState<string | null>(null);
 
+    // Format initial data when dialog opens
+    useEffect(() => {
+        if (initialData) {
+            const formattedData = { ...initialData };
+            schema.columns.forEach(column => {
+                if (isTimestampType(column.dataType) && formattedData[column.name]) {
+                    // Convert timestamp to local datetime format for input
+                    const date = new Date(formattedData[column.name]);
+                    formattedData[column.name] = formatDateForInput(date);
+                }
+            });
+            setFormData(formattedData);
+        } else {
+            // Set default values for new rows
+            const defaultData: Record<string, any> = {};
+            schema.columns.forEach(column => {
+                if (!column.isNullable && !column.isPrimary) {
+                    if (isTimestampType(column.dataType)) {
+                        defaultData[column.name] = formatDateForInput(new Date());
+                    } else {
+                        defaultData[column.name] = getDefaultValue(column.dataType);
+                    }
+                }
+            });
+            setFormData(defaultData);
+        }
+    }, [initialData, schema]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await onSave(formData);
+            // Convert form data for submission
+            const submissionData = { ...formData };
+            schema.columns.forEach(column => {
+                if (isTimestampType(column.dataType) && submissionData[column.name]) {
+                    // Convert local datetime to ISO string for submission
+                    submissionData[column.name] = new Date(submissionData[column.name]).toISOString();
+                }
+            });
+            await onSave(submissionData);
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to save');
@@ -84,6 +120,17 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
     );
 }
 
+// Helper functions
+function isTimestampType(dataType: string): boolean {
+    const type = dataType.toLowerCase();
+    return type.includes('timestamp') || type === 'date';
+}
+
+function formatDateForInput(date: Date): string {
+    // Format date to YYYY-MM-DDTHH:mm
+    return date.toISOString().slice(0, 16);
+}
+
 function getInputType(dataType: string): string {
     switch (dataType.toLowerCase()) {
         case 'integer':
@@ -100,5 +147,23 @@ function getInputType(dataType: string): string {
             return 'datetime-local';
         default:
             return 'text';
+    }
+}
+
+function getDefaultValue(dataType: string): any {
+    switch (dataType.toLowerCase()) {
+        case 'integer':
+        case 'bigint':
+        case 'smallint':
+            return 0;
+        case 'boolean':
+            return false;
+        case 'timestamp with time zone':
+        case 'timestamp without time zone':
+        case 'timestamp':
+        case 'date':
+            return formatDateForInput(new Date());
+        default:
+            return '';
     }
 } 
