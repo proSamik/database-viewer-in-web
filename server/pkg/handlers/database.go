@@ -219,3 +219,88 @@ func (h *DatabaseHandler) HandleDirectConnect(w http.ResponseWriter, r *http.Req
 		"message": "Successfully connected to database",
 	})
 }
+
+// HandleCreateRow handles creating a new row in a table
+func (h *DatabaseHandler) HandleCreateRow(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	tableName := vars["table"]
+	if tableName == "" {
+		http.Error(w, "Table name is required", http.StatusBadRequest)
+		return
+	}
+
+	var rowData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&rowData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Create the row
+	if err := h.dbManager.CreateRow(tableName, rowData); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create row: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Row created successfully",
+	})
+}
+
+// HandleUpdateRow handles updating an existing row in a table
+func (h *DatabaseHandler) HandleUpdateRow(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	tableName := vars["table"]
+	id := vars["id"]
+
+	if tableName == "" || id == "" {
+		http.Error(w, "Table name and ID are required", http.StatusBadRequest)
+		return
+	}
+
+	var rowData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&rowData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Update the row
+	if err := h.dbManager.UpdateRow(tableName, id, rowData); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update row: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Row updated successfully",
+	})
+}
+
+// HandleDeleteRow handles deleting a row from a table
+func (h *DatabaseHandler) HandleDeleteRow(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	tableName := vars["table"]
+	id := vars["id"]
+
+	if tableName == "" || id == "" {
+		http.Error(w, "Table name and ID are required", http.StatusBadRequest)
+		return
+	}
+
+	// Delete the row
+	if err := h.dbManager.DeleteRow(tableName, id); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to delete row: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Row deleted successfully",
+	})
+}
