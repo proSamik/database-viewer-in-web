@@ -65,40 +65,49 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">
             <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
             
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-                <Dialog.Panel className="mx-auto max-w-sm rounded bg-white p-6">
-                    <Dialog.Title className="text-lg font-medium mb-4">
-                        {mode === 'create' ? 'Add New Row' : 'Edit Row'}
-                    </Dialog.Title>
+            <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
+                <Dialog.Panel className="mx-auto w-full max-w-md rounded bg-white shadow-xl my-8">
+                    {/* Fixed Header */}
+                    <div className="sticky top-0 bg-white px-6 py-4 border-b">
+                        <Dialog.Title className="text-lg font-medium">
+                            {mode === 'create' ? 'Add New Row' : 'Edit Row'}
+                        </Dialog.Title>
+                    </div>
 
-                    {error && (
-                        <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
-                            {error}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {schema.columns.map(column => (
-                            <div key={column.name} className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    {column.name}
-                                </label>
-                                <input
-                                    type={getInputType(column.dataType)}
-                                    value={formData[column.name] || ''}
-                                    onChange={(e) => {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            [column.name]: e.target.value
-                                        }));
-                                    }}
-                                    required={!column.isNullable}
-                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                />
+                    {/* Scrollable Content */}
+                    <div className="px-6 py-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
+                        {error && (
+                            <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+                                {error}
                             </div>
-                        ))}
+                        )}
 
-                        <div className="flex justify-end space-x-2 pt-4">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {schema.columns.map(column => (
+                                <div key={column.name} className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        {column.name}
+                                    </label>
+                                    <input
+                                        type={getInputType(column.dataType)}
+                                        value={formData[column.name] || ''}
+                                        onChange={(e) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                [column.name]: e.target.value
+                                            }));
+                                        }}
+                                        required={!column.isNullable}
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            ))}
+                        </form>
+                    </div>
+
+                    {/* Fixed Footer */}
+                    <div className="sticky bottom-0 bg-white px-6 py-4 border-t">
+                        <div className="flex justify-end space-x-2">
                             <button
                                 type="button"
                                 onClick={onClose}
@@ -107,13 +116,13 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
                                 Cancel
                             </button>
                             <button
-                                type="submit"
+                                onClick={handleSubmit}
                                 className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                             >
                                 Save
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </Dialog.Panel>
             </div>
         </Dialog>
