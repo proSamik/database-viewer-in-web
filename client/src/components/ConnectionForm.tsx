@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { ConnectionConfig, ConnectionType } from '@/types';
 
 interface Props {
-    onConnect: (config: ConnectionConfig, type: ConnectionType) => Promise<void>;
+    onSubmit: (config: ConnectionConfig) => Promise<void>;
 }
 
-export function ConnectionForm({ onConnect }: Props) {
+export function ConnectionForm({ onSubmit }: Props) {
     const [connectionType, setConnectionType] = useState<ConnectionType>('ngrok');
     const [formData, setFormData] = useState<ConnectionConfig>({
         url: '',
@@ -18,7 +18,7 @@ export function ConnectionForm({ onConnect }: Props) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onConnect(formData, connectionType);
+        await onSubmit(formData);
     };
 
     return (
