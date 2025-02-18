@@ -664,7 +664,7 @@ export function TableViewer({ tableName, onReset }: Props) {
                     </button>
                     
                     {showColumnMenu && (
-                        <div className="absolute z-10 mt-2 w-64 bg-white border rounded-lg shadow-lg">
+                        <div className="absolute mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
                             <div className="p-2">
                                 {schemaData?.columns.map(column => (
                                     <div key={column.name} className="flex items-center p-2 hover:bg-gray-50">
