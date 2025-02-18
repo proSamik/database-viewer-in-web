@@ -100,61 +100,60 @@ export default function ConsolePage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold text-white">Database Console</h1>
-                <button
-                    onClick={handleReset}
-                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-                >
-                    Disconnect
-                </button>
+        <div className="h-[calc(100vh-4rem)] flex flex-col">
+            {/* Header */}
+            <div className="bg-gray-800 p-4 border-b border-gray-700">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                        {/* Table Selection Dropdown */}
+                        <select
+                            value={selectedTable || ''}
+                            onChange={(e) => setSelectedTable(e.target.value)}
+                            className="px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Select a table</option>
+                            {tables?.tables.map((table) => (
+                                <option key={table} value={table}>
+                                    {table}
+                                </option>
+                            ))}
+                        </select>
+
+                        <h1 className="text-xl font-bold text-white">
+                            {selectedTable ? `Table: ${selectedTable}` : 'Database Console'}
+                        </h1>
+                    </div>
+
+                    <button
+                        onClick={handleReset}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    >
+                        Disconnect
+                    </button>
+                </div>
             </div>
 
-            {isLoading ? (
-                <div className="text-center text-gray-400 py-12">
-                    Loading tables...
-                </div>
-            ) : error ? (
-                <div className="text-center text-red-400 py-12">
-                    Error loading tables: {error.message}
-                </div>
-            ) : tables ? (
-                <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        <h2 className="text-lg font-semibold mb-4 text-white">Tables</h2>
-                        <ul className="space-y-2">
-                            {tables.tables.map((table) => (
-                                <li key={table}>
-                                    <button
-                                        onClick={() => setSelectedTable(table)}
-                                        className={`w-full text-left px-3 py-2 rounded ${
-                                            selectedTable === table
-                                                ? 'bg-blue-600 text-white'
-                                                : 'text-gray-300 hover:bg-gray-700'
-                                        }`}
-                                    >
-                                        {table}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
+            {/* Main Content */}
+            <div className="flex-1 overflow-hidden">
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-gray-400">Loading tables...</p>
                     </div>
-
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        {selectedTable ? (
-                            <TableViewer
-                                tableName={selectedTable}
-                                onReset={handleReset}
-                            />
-                        ) : (
-                            <div className="text-center text-gray-400 py-12">
-                                Select a table to view its data
-                            </div>
-                        )}
+                ) : error ? (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-red-400">Error: {error.message}</p>
                     </div>
-                </div>
-            ) : null}
+                ) : selectedTable ? (
+                    <TableViewer
+                        tableName={selectedTable}
+                        onReset={handleReset}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-gray-400">Select a table to view its data</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 } 
