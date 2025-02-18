@@ -156,31 +156,28 @@ export function TableViewer({ tableName, onReset }: Props) {
     // Update references to the state throughout the component
     const { columnVisibility, columnWidths, columnTextWrapping, pageSize } = tableState;
 
-    // Fetch schema first
+    // First, get the schema data
     const { data: schemaData, isLoading: schemaLoading } = useQuery<TableSchema>({
-        queryKey: ['tableSchema', tableName],
+        queryKey: ['schema', tableName],
         queryFn: async () => {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/schema`
-            );
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}/schema`);
             if (!response.ok) throw new Error('Failed to fetch schema');
             return response.json();
         },
-        enabled: !!tableName,
     });
 
     // Then fetch data with pagination
-    const { data: tableData, isLoading: dataLoading } = useQuery<TableResponse>({
-        queryKey: ['tableData', tableName, page, pageSize],
+    const { data: tableData, isLoading: dataLoading, error } = useQuery<TableResponse>({
+        queryKey: ['table', tableName, page, pageSize],
         queryFn: async () => {
             const response = await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/tables/${tableName}?page=${page}&pageSize=${pageSize}`
             );
-            if (!response.ok) throw new Error('Failed to fetch table data');
-            const data = await response.json();
-            return data;
+            if (!response.ok) {
+                throw new Error('Failed to fetch table data');
+            }
+            return response.json();
         },
-        enabled: !!tableName && !!schemaData,
     });
 
     // Update the toggle functions with proper typing
@@ -205,12 +202,12 @@ export function TableViewer({ tableName, onReset }: Props) {
         setHighlightedCells({});
     };
 
-    // Filter rows based on search
-    const filteredRows = tableData?.rows.filter(row => 
+    // Add proper null checks for filtering
+    const filteredRows = tableData?.rows ? tableData.rows.filter(row => 
         !searchText || Object.values(row).some(value => 
             String(value).toLowerCase().includes(searchText.toLowerCase())
         )
-    ) || [];
+    ) : [];
 
     // Update the toggle functions with proper typing
     const toggleColumnWrapping = (columnName: string) => {
@@ -248,21 +245,20 @@ export function TableViewer({ tableName, onReset }: Props) {
         }));
     };
 
-    // Sort the filtered rows
-    const sortedRows = [...filteredRows].sort((a, b) => {
+    // Sort rows with null check
+    const sortedRows = [...(filteredRows || [])].sort((a, b) => {
         if (!sortConfig.column || !sortConfig.direction) return 0;
         
-        const aVal = a[sortConfig.column];
-        const bVal = b[sortConfig.column];
-        
-        if (aVal === bVal) return 0;
-        if (aVal === null) return 1;
-        if (bVal === null) return -1;
-        
-        return (
-            (aVal < bVal ? -1 : 1) * 
-            (sortConfig.direction === 'asc' ? 1 : -1)
-        );
+        const aValue = a[sortConfig.column];
+        const bValue = b[sortConfig.column];
+
+        if (aValue === bValue) return 0;
+        if (aValue === null) return 1;
+        if (bValue === null) return -1;
+
+        return sortConfig.direction === 'asc' 
+            ? aValue > bValue ? 1 : -1
+            : aValue < bValue ? 1 : -1;
     });
 
     const resetTableState = () => {
@@ -528,25 +524,14 @@ export function TableViewer({ tableName, onReset }: Props) {
         setPageInput((page + 1).toString());
     }, [page]);
 
-    if (schemaLoading || dataLoading) {
-        return (
-            <div className="flex justify-center items-center h-96">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-        );
-    }
-
-    if (!schemaData || !tableData?.rows?.length) {
-        return <div className="p-4 text-gray-500">No data available</div>;
-    }
-
-    const totalPages = Math.ceil((tableData.totalCount || 0) / pageSize);
+    // Calculate total pages with null check
+    const totalPages = Math.ceil((tableData?.totalCount || 0) / pageSize);
 
     // Format cell value based on schema
     const formatCellValue = (value: any, columnName: string) => {
         if (value === null) return '-';
         
-        const columnSchema = schemaData.columns.find(col => col.name === columnName);
+        const columnSchema = schemaData?.columns.find(col => col.name === columnName);
         if (!columnSchema) return String(value);
 
         switch (columnSchema.dataType.toLowerCase()) {
@@ -638,6 +623,33 @@ export function TableViewer({ tableName, onReset }: Props) {
             console.error('Failed to update cell:', error);
         }
     };
+
+    // Show loading state if either schema or data is loading
+    if (schemaLoading || dataLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-gray-400">Loading table data...</p>
+            </div>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-red-400">Error: {error.message}</p>
+            </div>
+        );
+    }
+
+    // Show empty state if no data or schema
+    if (!tableData?.rows || !schemaData) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-gray-400">No data available</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col w-full h-full">
