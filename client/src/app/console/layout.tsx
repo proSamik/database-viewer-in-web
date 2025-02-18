@@ -8,7 +8,7 @@ export default function ConsoleLayout({
     return (
         <div className="min-h-screen bg-gray-900">
             <ConsoleHeader />
-            <main className="py-4">
+            <main className="h-[calc(100vh-4rem)]">
                 {children}
             </main>
         </div>
