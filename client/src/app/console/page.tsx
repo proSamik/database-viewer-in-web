@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ConnectionConfig, ConnectionType } from '@/types';
 import { TableViewer } from '@/components/TableViewer';
@@ -15,9 +15,52 @@ export default function ConsolePage() {
     const [selectedTable, setSelectedTable] = useState<string | null>(null);
     const [connectionConfig, setConnectionConfig] = usePersistedState<ConnectionConfig | null>('connectionConfig', null);
 
-    const { data: tables } = useQuery<TablesResponse>({
+    // Add connection verification
+    const verifyConnection = useCallback(async (config: ConnectionConfig) => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/connect`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config),
+            });
+
+            if (!response.ok) {
+                setConnectionConfig(null);
+                throw new Error('Connection failed');
+            }
+        } catch (error) {
+            setConnectionConfig(null);
+            console.error('Connection verification failed:', error);
+        }
+    }, [setConnectionConfig]);
+
+    // Verify connection on mount if we have stored credentials
+    useEffect(() => {
+        if (connectionConfig) {
+            verifyConnection(connectionConfig);
+        }
+    }, [connectionConfig, verifyConnection]);
+
+    const { data: tables, isLoading, error } = useQuery<TablesResponse>({
         queryKey: ['tables'],
+        queryFn: async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tables`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch tables');
+            }
+            return response.json();
+        },
         enabled: !!connectionConfig,
+        // Add retry logic
+        retry: (failureCount, error) => {
+            if (error.message.includes('Connection failed')) {
+                setConnectionConfig(null);
+                return false;
+            }
+            return failureCount < 3;
+        },
     });
 
     const handleConnect = async (config: ConnectionConfig) => {
@@ -68,7 +111,15 @@ export default function ConsolePage() {
                 </button>
             </div>
 
-            {tables && (
+            {isLoading ? (
+                <div className="text-center text-gray-400 py-12">
+                    Loading tables...
+                </div>
+            ) : error ? (
+                <div className="text-center text-red-400 py-12">
+                    Error loading tables: {error.message}
+                </div>
+            ) : tables ? (
                 <div className="grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
                     <div className="bg-gray-800 p-4 rounded-lg">
                         <h2 className="text-lg font-semibold mb-4 text-white">Tables</h2>
@@ -103,7 +154,7 @@ export default function ConsolePage() {
                         )}
                     </div>
                 </div>
-            )}
+            ) : null}
         </div>
     );
 } 
