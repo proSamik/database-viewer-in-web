@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { useState, useCallback, useEffect } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { TableViewerState } from '@/types';
-import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon, PlusIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { EditRowDialog } from './EditRowDialog';
 import { Switch } from '@headlessui/react';
 
@@ -624,6 +624,17 @@ export function TableViewer({ tableName, onReset }: Props) {
         }
     };
 
+    // Update reload function with proper typing
+    const handleReload = () => {
+        // Invalidate and refetch both schema and table data
+        queryClient.invalidateQueries({
+            queryKey: ['schema', tableName]
+        });
+        queryClient.invalidateQueries({
+            queryKey: ['table', tableName]
+        });
+    };
+
     // Show loading state if either schema or data is loading
     if (schemaLoading || dataLoading) {
         return (
@@ -666,6 +677,16 @@ export function TableViewer({ tableName, onReset }: Props) {
 
             {/* Toolbar */}
             <div className="flex items-center space-x-4 mb-4 p-2 bg-white border rounded-lg">
+                {/* Add Reload Button */}
+                <button
+                    onClick={handleReload}
+                    className="px-3 py-2 text-sm border rounded-md hover:bg-gray-50 flex items-center space-x-1"
+                    title="Reload data"
+                >
+                    <ArrowPathIcon className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
+                    <span>Reload</span>
+                </button>
+
                 {/* Column visibility toggle */}
                 <div className="relative">
                     <button 
