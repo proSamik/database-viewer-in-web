@@ -14,14 +14,6 @@ const faqs = [
   {
     question: "Can I use DBViewer with my self-hosted database?",
     answer: "Absolutely! DBViewer works with any accessible PostgreSQL database, whether it's hosted in the cloud or on your own infrastructure."
-  },
-  {
-    question: "Do you offer custom enterprise solutions?",
-    answer: "Yes, we offer enterprise solutions with custom features, dedicated support, and self-hosting options. Contact our sales team to learn more."
-  },
-  {
-    question: "What kind of support do you provide?",
-    answer: "We offer community support for our free tier users through our documentation and community forums. Pro and Enterprise users get priority email support and dedicated account management."
   }
 ];
 
