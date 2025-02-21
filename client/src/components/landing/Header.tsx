@@ -24,9 +24,6 @@ export function Header() {
             <Link href="#demo" className="text-gray-300 hover:text-white transition">
               Demo
             </Link>
-            <Link href="#pricing" className="text-gray-300 hover:text-white transition">
-              Pricing
-            </Link>
             <Link href="#faq" className="text-gray-300 hover:text-white transition">
               FAQ
             </Link>
