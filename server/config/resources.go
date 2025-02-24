@@ -9,8 +9,6 @@ type SystemResources struct {
 	QueryQueueSize        int     `json:"query_queue_size"`
 	RateLimit             float64 `json:"rate_limit"`
 	CacheSize             int     `json:"cache_size"`
-	RedisURL              string  `json:"redis_url"`
-	RedisPassword         string  `json:"redis_password"`
 }
 
 // NewSystemResources creates a new SystemResources instance with default values
@@ -23,7 +21,5 @@ func NewSystemResources() *SystemResources {
 		QueryQueueSize:        21,   // 3 * MaxConnections
 		RateLimit:             10.0, // requests per second
 		CacheSize:             512,  // MB
-		RedisURL:              "localhost:6379",
-		RedisPassword:         "",
 	}
 }
