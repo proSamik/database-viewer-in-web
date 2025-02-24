@@ -11,7 +11,6 @@ import (
 
 	"dbviewer-saas/config"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/lib/pq"
 )
 
@@ -36,9 +35,20 @@ type DirectConnectionConfig struct {
 // DatabaseManager handles all database operations
 type DatabaseManager struct {
 	pool      *sql.DB
-	cache     *redis.Client
 	resources *config.SystemResources
 	currentDB *sql.DB
+}
+
+// TableSchema represents the structure of a database table
+type TableSchema struct {
+	Columns []ColumnSchema `json:"columns"`
+}
+
+type ColumnSchema struct {
+	Name       string `json:"name"`
+	DataType   string `json:"dataType"`
+	IsNullable bool   `json:"isNullable"`
+	IsPrimary  bool   `json:"isPrimary"`
 }
 
 // NewDatabaseManager creates a new database manager instance
@@ -54,27 +64,15 @@ func NewDatabaseManager(connStr string, resources *config.SystemResources) (*Dat
 	db.SetMaxIdleConns(resources.MaxIdleConnections)
 	db.SetConnMaxLifetime(15 * time.Minute)
 
-	// Initialize Redis cache
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     resources.RedisURL,
-		Password: resources.RedisPassword,
-		DB:       0,
-		PoolSize: resources.MaxConnections,
-	})
-
 	return &DatabaseManager{
 		pool:      db,
-		cache:     rdb,
 		resources: resources,
 	}, nil
 }
 
 // Close closes all connections
 func (dm *DatabaseManager) Close() error {
-	if err := dm.pool.Close(); err != nil {
-		return err
-	}
-	return dm.cache.Close()
+	return dm.pool.Close()
 }
 
 // Connect establishes a connection to the specified database
@@ -295,18 +293,6 @@ func (dm *DatabaseManager) GetTableCount(tableName string) (int64, error) {
 	return count, nil
 }
 
-// TableSchema represents the structure of a database table
-type TableSchema struct {
-	Columns []ColumnSchema `json:"columns"`
-}
-
-type ColumnSchema struct {
-	Name       string `json:"name"`
-	DataType   string `json:"dataType"`
-	IsNullable bool   `json:"isNullable"`
-	IsPrimary  bool   `json:"isPrimary"`
-}
-
 // GetTableSchema returns the schema for a given table
 func (dm *DatabaseManager) GetTableSchema(tableName string) (*TableSchema, error) {
 	if dm.currentDB == nil {
@@ -436,42 +422,6 @@ func (dm *DatabaseManager) GetTableDataPaginated(tableName string, page, pageSiz
 	}
 
 	return results, nil
-}
-
-// Helper functions for value conversion
-func convertValue(val interface{}, dataType string) (interface{}, error) {
-	switch v := val.(type) {
-	case []byte:
-		return convertBytes(v, dataType)
-	default:
-		return v, nil
-	}
-}
-
-func convertBytes(b []byte, dataType string) (interface{}, error) {
-	switch strings.ToLower(dataType) {
-	case "timestamp", "timestamp without time zone", "timestamp with time zone", "date":
-		return string(b), nil // Return ISO string for dates
-	case "numeric", "decimal":
-		return strconv.ParseFloat(string(b), 64)
-	case "integer", "bigint", "smallint":
-		return strconv.Atoi(string(b))
-	default:
-		return string(b), nil
-	}
-}
-
-func getDefaultValue(dataType string) interface{} {
-	switch strings.ToLower(dataType) {
-	case "integer", "bigint", "smallint":
-		return 0
-	case "numeric", "decimal":
-		return 0.0
-	case "boolean":
-		return false
-	default:
-		return ""
-	}
 }
 
 // ConnectDirect establishes a direct connection to the specified database
@@ -664,4 +614,40 @@ func (dm *DatabaseManager) UpdateCell(tableName string, pkColumn string, pkValue
 
 	log.Printf("Successfully updated cell. Rows affected: %d", rowsAffected)
 	return nil
+}
+
+// Helper functions for value conversion
+func convertValue(val interface{}, dataType string) (interface{}, error) {
+	switch v := val.(type) {
+	case []byte:
+		return convertBytes(v, dataType)
+	default:
+		return v, nil
+	}
+}
+
+func convertBytes(b []byte, dataType string) (interface{}, error) {
+	switch strings.ToLower(dataType) {
+	case "timestamp", "timestamp without time zone", "timestamp with time zone", "date":
+		return string(b), nil // Return ISO string for dates
+	case "numeric", "decimal":
+		return strconv.ParseFloat(string(b), 64)
+	case "integer", "bigint", "smallint":
+		return strconv.Atoi(string(b))
+	default:
+		return string(b), nil
+	}
+}
+
+func getDefaultValue(dataType string) interface{} {
+	switch strings.ToLower(dataType) {
+	case "integer", "bigint", "smallint":
+		return 0
+	case "numeric", "decimal":
+		return 0.0
+	case "boolean":
+		return false
+	default:
+		return ""
+	}
 }
