@@ -1,4 +1,5 @@
-FROM golang:1.21-alpine
+# Update to latest stable Go version
+FROM golang:1.23.1-alpine
 
 WORKDIR /app
 
