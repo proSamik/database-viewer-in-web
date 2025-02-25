@@ -6,12 +6,13 @@ import { ConnectionConfig, ConnectionType } from '@/types';
 interface Props {
     onSubmit: (config: ConnectionConfig) => Promise<void>;
     initialValues?: ConnectionConfig;
+    disabled?: boolean;
 }
 
 /**
  * Form component for database connection configuration
  */
-export function ConnectionForm({ onSubmit, initialValues }: Props) {
+export function ConnectionForm({ onSubmit, initialValues, disabled = false }: Props) {
     const [connectionType, setConnectionType] = useState<ConnectionType>(initialValues?.type || 'ngrok');
     const [formData, setFormData] = useState<ConnectionConfig>(initialValues || {
         url: '',
@@ -54,22 +55,24 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
                 <button
                     type="button"
                     onClick={() => handleTypeChange('ngrok')}
+                    disabled={disabled}
                     className={`flex-1 py-2 px-4 rounded-md ${
                         connectionType === 'ngrok'
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     Ngrok URL
                 </button>
                 <button
                     type="button"
                     onClick={() => handleTypeChange('direct')}
+                    disabled={disabled}
                     className={`flex-1 py-2 px-4 rounded-md ${
                         connectionType === 'direct'
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     Direct Database URL
                 </button>
@@ -85,6 +88,7 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
                         value={formData.url || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
                         required
+                        disabled={disabled}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="postgresql://username:password@host:port/database"
                     />
@@ -103,6 +107,7 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
                             value={formData.url || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
                             required
+                            disabled={disabled}
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             placeholder="e.g., 3fd6-2401-4900-76ea-aeb4-9805-844f-6bd2.ngrok-free.app"
                         />
@@ -117,6 +122,7 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
                             value={formData.username || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
                             required
+                            disabled={disabled}
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
@@ -130,6 +136,7 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
                             value={formData.password || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                             required
+                            disabled={disabled}
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
@@ -143,6 +150,7 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
                             value={formData.database || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, database: e.target.value }))}
                             required
+                            disabled={disabled}
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
@@ -151,7 +159,10 @@ export function ConnectionForm({ onSubmit, initialValues }: Props) {
 
             <button
                 type="submit"
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                disabled={disabled}
+                className={`w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    disabled ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
             >
                 {initialValues ? 'Update Connection' : 'Connect'}
             </button>
