@@ -60,6 +60,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
         tempValue: CellValue;
     } | null>(null);
     const [pageInput, setPageInput] = useState('1');
+    const [actionsColumnVisible, setActionsColumnVisible] = useState(true);
 
     const { columnVisibility, columnTextWrapping, columnWidths, pageSize } = tableState;
 
@@ -271,6 +272,11 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
         }
     }, [queryClient, tableName]);
 
+    // Toggle actions column visibility
+    const handleActionsColumnToggle = () => {
+        setActionsColumnVisible(!actionsColumnVisible);
+    };
+
     // Loading and error states
     if (schemaLoading || dataLoading) {
         return (
@@ -341,9 +347,16 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                 selectedColumn={selectedColumn}
                 columnVisibility={columnVisibility}
                 isLoading={dataLoading}
+                actionsColumnVisible={actionsColumnVisible}
                 onSearchChange={setSearchText}
-                onColumnMenuToggle={() => setShowColumnMenu(!showColumnMenu)}
-                onHighlightMenuToggle={() => setShowHighlightMenu(!showHighlightMenu)}
+                onColumnMenuToggle={() => {
+                    setShowColumnMenu(!showColumnMenu);
+                    setShowHighlightMenu(false);
+                }}
+                onHighlightMenuToggle={() => {
+                    setShowHighlightMenu(!showHighlightMenu);
+                    setShowColumnMenu(false);
+                }}
                 onColumnVisibilityChange={handleColumnVisibilityChange}
                 onColumnSelect={setSelectedColumn}
                 onHighlightColor={(color) => {
@@ -360,6 +373,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                     queryClient.invalidateQueries({ queryKey: ['schema', tableName] });
                     queryClient.invalidateQueries({ queryKey: ['table', tableName] });
                 }}
+                onActionsColumnToggle={handleActionsColumnToggle}
             />
 
             <div className="overflow-x-auto">
@@ -373,6 +387,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                         onTextWrappingChange={handleTextWrappingChange}
                         onColumnResize={handleColumnResize}
                         columnWidths={columnWidths}
+                        actionsColumnVisible={actionsColumnVisible}
                     />
 
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -398,6 +413,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                                 onCellEditCancel={() => setEditingCell(null)}
                                 onCellClick={handleCellClick}
                                 columnWidths={columnWidths}
+                                actionsColumnVisible={actionsColumnVisible}
                             />
                         ))}
                     </tbody>
