@@ -124,7 +124,7 @@ export const getWrappingClass = (wrapping: 'wrap' | 'truncate' | 'normal'): stri
         case 'truncate':
             return 'truncate';
         case 'normal':
-            return 'whitespace-pre overflow-x-auto';
+            return 'whitespace-pre-line break-all';
         default:
             return 'whitespace-nowrap';
     }
