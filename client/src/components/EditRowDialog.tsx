@@ -1,19 +1,19 @@
 import { Dialog } from '@headlessui/react';
 import { useState, useEffect } from 'react';
-import { TableSchema } from '@/types';
+import { TableSchema, CellValue } from '@/types';
 import { Switch } from '@headlessui/react';
 
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: Record<string, any>) => Promise<void>;
+    onSave: (data: Record<string, CellValue>) => Promise<void>;
     schema: TableSchema;
-    initialData?: Record<string, any>;
+    initialData?: Record<string, CellValue>;
     mode: 'create' | 'edit';
 }
 
 export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mode }: Props) {
-    const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
+    const [formData, setFormData] = useState<Record<string, CellValue>>(initialData || {});
     const [error, setError] = useState<string | null>(null);
 
     // Format initial data when dialog opens
@@ -23,14 +23,14 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
             schema.columns.forEach(column => {
                 if (isTimestampType(column.dataType) && formattedData[column.name]) {
                     // Convert timestamp to local datetime format for input
-                    const date = new Date(formattedData[column.name]);
+                    const date = new Date(formattedData[column.name] as string | number | Date);
                     formattedData[column.name] = formatDateForInput(date);
                 }
             });
             setFormData(formattedData);
         } else {
             // Set default values for new rows
-            const defaultData: Record<string, any> = {};
+            const defaultData: Record<string, CellValue> = {};
             schema.columns.forEach(column => {
                 if (!column.isNullable && !column.isPrimary) {
                     defaultData[column.name] = getDefaultValue(column.dataType);
@@ -48,7 +48,7 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
             schema.columns.forEach(column => {
                 if (isTimestampType(column.dataType) && submissionData[column.name]) {
                     // Convert local datetime to ISO string for submission
-                    submissionData[column.name] = new Date(submissionData[column.name]).toISOString();
+                    submissionData[column.name] = new Date(submissionData[column.name] as string).toISOString();
                 } else if (column.dataType.toLowerCase() === 'boolean') {
                     // Ensure boolean values are actually booleans
                     submissionData[column.name] = Boolean(submissionData[column.name]);
@@ -97,7 +97,7 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
                 return (
                     <input
                         type="datetime-local"
-                        value={value || ''}
+                        value={value ? String(value) : ''}
                         onChange={(e) => {
                             setFormData(prev => ({
                                 ...prev,
@@ -112,7 +112,7 @@ export function EditRowDialog({ isOpen, onClose, onSave, schema, initialData, mo
                 return (
                     <input
                         type={getInputType(column.dataType)}
-                        value={value || ''}
+                        value={value !== null && value !== undefined ? String(value) : ''}
                         onChange={(e) => {
                             setFormData(prev => ({
                                 ...prev,
@@ -221,7 +221,12 @@ function getInputType(dataType: string): string {
     }
 }
 
-function getDefaultValue(dataType: string): any {
+/**
+ * Returns a default value based on the data type
+ * @param dataType The PostgreSQL data type
+ * @returns A default value appropriate for the data type
+ */
+function getDefaultValue(dataType: string): CellValue {
     switch (dataType.toLowerCase()) {
         case 'integer':
         case 'bigint':
