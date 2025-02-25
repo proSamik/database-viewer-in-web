@@ -13,7 +13,7 @@ export interface TableSchema extends BaseTableSchema {
 
 export type ColumnVisibility = Record<string, boolean>;
 export type ColumnWidth = Record<string, number>;
-export type TextWrapping = Record<string, 'wrap' | 'truncate' | 'normal'>;
+export type TextWrapping = Record<string, 'wrap' | 'truncate'>;
 export type SortDirection = 'asc' | 'desc' | null;
 
 export interface TableViewerProps {
