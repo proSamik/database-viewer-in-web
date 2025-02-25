@@ -1,3 +1,9 @@
+// Define possible cell value types
+export type CellValue = string | number | boolean | Date | null;
+
+// Define possible column types
+export type ColumnType = 'string' | 'number' | 'boolean' | 'dateTime';
+
 export interface ConnectionConfig {
     url: string;
     username: string;
@@ -16,7 +22,7 @@ export interface TableColumn {
 
 export interface TableData {
     columns: TableColumn[];
-    rows: Record<string, any>[];
+    rows: Record<string, CellValue>[];
 }
 
 export interface DatabaseError {
@@ -41,7 +47,7 @@ export interface TableViewerState {
 
 export interface TableRow {
     id: string | number;
-    [key: string]: any;
+    [key: string]: CellValue;
 }
 
 export interface TableSchema {
