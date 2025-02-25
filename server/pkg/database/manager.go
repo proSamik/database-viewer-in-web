@@ -75,23 +75,58 @@ func (dm *DatabaseManager) Close() error {
 	return dm.pool.Close()
 }
 
+// sanitizeHostURL removes any protocol prefixes and ensures the URL is suitable for PostgreSQL connections
+func sanitizeHostURL(inputURL string) string {
+	// Remove common protocol prefixes
+	prefixes := []string{"http://", "https://", "tcp://", "postgres://", "postgresql://"}
+	url := inputURL
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(strings.ToLower(url), prefix) {
+			url = strings.TrimPrefix(url, prefix)
+			break // Only remove one prefix
+		}
+	}
+
+	return url
+}
+
 // Connect establishes a connection to the specified database
 func (dm *DatabaseManager) Connect(connConfig ConnectionConfig) error {
-	// Build connection string using localhost since ngrok is forwarding to it
-	connStr := fmt.Sprintf(
-		"user=%s password=%s host=localhost dbname=%s sslmode=disable",
-		connConfig.Username,
-		connConfig.Password,
-		connConfig.Database,
-	)
+	// For ngrok connections, we want to use the ngrok URL directly,
+	// as it's already configured to forward to the user's local PostgreSQL instance
+
+	// Clean the URL by removing any protocol prefixes
+	url := sanitizeHostURL(connConfig.URL)
 
 	// Log connection details (without password)
 	log.Printf("Connection attempt details:")
 	log.Printf("- Database Name: %s", connConfig.Database)
 	log.Printf("- Username: %s", connConfig.Username)
 	log.Printf("- Ngrok URL: %s", connConfig.URL)
+	log.Printf("- Sanitized host: %s", url)
 
-	// Try to connect
+	// Build connection string using the ngrok URL as the host
+	// No need to specify port as it's included in the ngrok URL
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s/%s?sslmode=disable",
+		connConfig.Username,
+		connConfig.Password,
+		url,
+		connConfig.Database,
+	)
+
+	// Log the connection string (with password masked)
+	maskedConnStr := fmt.Sprintf(
+		"postgres://%s:xxxxx@%s/%s?sslmode=disable",
+		connConfig.Username,
+		url,
+		connConfig.Database,
+	)
+	log.Printf("Connecting with: %s", maskedConnStr)
+
+	// Try to connect with a timeout
+	log.Printf("Attempting to open connection to PostgreSQL...")
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Printf("Failed to open database: %v", err)
@@ -104,10 +139,20 @@ func (dm *DatabaseManager) Connect(connConfig ConnectionConfig) error {
 	db.SetConnMaxLifetime(15 * time.Minute)
 
 	// Test the connection with timeout context
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	log.Printf("Testing connection with ping...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	// First try a simple ping
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		log.Printf("Failed to ping database: %v", err)
+		return fmt.Errorf("failed to connect to database: %v", err)
+	}
+	log.Printf("Ping successful!")
+
 	// Verify connection and get current database name
+	log.Printf("Querying database name...")
 	var dbName string
 	err = db.QueryRowContext(ctx, "SELECT current_database()").Scan(&dbName)
 	if err != nil {
@@ -426,9 +471,13 @@ func (dm *DatabaseManager) GetTableDataPaginated(tableName string, page, pageSiz
 
 // ConnectDirect establishes a direct connection to the specified database
 func (dm *DatabaseManager) ConnectDirect(config DirectConnectionConfig) error {
+	// Clean the host in case it contains any protocol prefixes
+	host := sanitizeHostURL(config.Host)
+
+	// Build the connection string
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		config.Host,
+		host,
 		config.Port,
 		config.User,
 		config.Password,
@@ -436,7 +485,16 @@ func (dm *DatabaseManager) ConnectDirect(config DirectConnectionConfig) error {
 		config.SSLMode,
 	)
 
+	// Log connection details (without password)
+	log.Printf("Direct connection attempt details:")
+	log.Printf("- Host: %s (original: %s)", host, config.Host)
+	log.Printf("- Port: %s", config.Port)
+	log.Printf("- Database: %s", config.DBName)
+	log.Printf("- User: %s", config.User)
+	log.Printf("- SSL Mode: %s", config.SSLMode)
+
 	// Try to connect
+	log.Printf("Attempting to open direct connection to PostgreSQL...")
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Printf("Failed to open database: %v", err)
@@ -448,14 +506,18 @@ func (dm *DatabaseManager) ConnectDirect(config DirectConnectionConfig) error {
 	db.SetMaxIdleConns(dm.resources.MaxIdleConnections)
 	db.SetConnMaxLifetime(15 * time.Minute)
 
-	// Test the connection
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Test the connection with timeout context
+	log.Printf("Testing direct connection with ping...")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	// Try a simple ping first
 	if err := db.PingContext(ctx); err != nil {
 		db.Close()
-		return fmt.Errorf("failed to verify database connection: %v", err)
+		log.Printf("Failed to ping database: %v", err)
+		return fmt.Errorf("failed to connect to database (ping failed): %v", err)
 	}
+	log.Printf("Ping successful!")
 
 	// Close existing connection if any
 	if dm.currentDB != nil {
@@ -465,6 +527,7 @@ func (dm *DatabaseManager) ConnectDirect(config DirectConnectionConfig) error {
 	}
 
 	dm.currentDB = db
+	log.Printf("Successfully established direct connection to database %s", config.DBName)
 	return nil
 }
 
