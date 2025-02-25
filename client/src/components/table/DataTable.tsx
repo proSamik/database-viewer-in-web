@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { TableSchema, TableResponse, TableViewerState, EditDialogState, EditingCellState, CellValue } from '@/types/TableViewerTypes';
@@ -61,7 +61,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
     } | null>(null);
     const [pageInput, setPageInput] = useState('1');
 
-    const { columnVisibility, columnTextWrapping, pageSize } = tableState;
+    const { columnVisibility, columnTextWrapping, columnWidths, pageSize } = tableState;
 
     // Data fetching
     const { data: schemaData, isLoading: schemaLoading } = useQuery<TableSchema>({
@@ -102,6 +102,16 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
         }));
     }, [setTableState]);
 
+    const handleColumnResize = useCallback((columnName: string, width: number) => {
+        setTableState(prev => ({
+            ...prev,
+            columnWidths: {
+                ...prev.columnWidths,
+                [columnName]: width
+            }
+        }));
+    }, [setTableState]);
+
     const handleTextWrappingChange = useCallback((columnName: string, value: 'wrap' | 'truncate' | 'normal') => {
         setTableState(prev => ({
             ...prev,
@@ -111,6 +121,31 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
             }
         }));
     }, [setTableState]);
+
+    // Initialize column text wrapping to 'truncate' for new columns
+    useEffect(() => {
+        if (schemaData?.columns) {
+            const newWrapping: Record<string, 'wrap' | 'truncate' | 'normal'> = {};
+            let needsUpdate = false;
+            
+            schemaData.columns.forEach(column => {
+                if (!columnTextWrapping[column.name]) {
+                    newWrapping[column.name] = 'truncate';
+                    needsUpdate = true;
+                }
+            });
+            
+            if (needsUpdate) {
+                setTableState(prev => ({
+                    ...prev,
+                    columnTextWrapping: {
+                        ...prev.columnTextWrapping,
+                        ...newWrapping
+                    }
+                }));
+            }
+        }
+    }, [schemaData?.columns, columnTextWrapping, setTableState]);
 
     const handleHighlightCell = useCallback((rowId: string | number, columnName: string, color: string) => {
         setHighlightedCells(prev => ({
@@ -327,15 +362,17 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                 }}
             />
 
-            <div className="overflow-x-auto shadow-md rounded-lg">
-                <table className="w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200 border border-gray-200 border-collapse">
                     <TableHeader
-                        columns={schemaData.columns}
+                        columns={schemaData?.columns || []}
                         columnVisibility={columnVisibility}
                         columnTextWrapping={columnTextWrapping}
                         sortConfig={sortConfig}
                         onSort={handleSort}
                         onTextWrappingChange={handleTextWrappingChange}
+                        onColumnResize={handleColumnResize}
+                        columnWidths={columnWidths}
                     />
 
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -343,7 +380,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                             <TableRow
                                 key={String(row.id)}
                                 row={row}
-                                columns={schemaData.columns}
+                                columns={schemaData?.columns || []}
                                 columnVisibility={columnVisibility}
                                 columnTextWrapping={columnTextWrapping}
                                 highlightedCells={highlightedCells}
@@ -360,6 +397,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                                 }}
                                 onCellEditCancel={() => setEditingCell(null)}
                                 onCellClick={handleCellClick}
+                                columnWidths={columnWidths}
                             />
                         ))}
                     </tbody>
