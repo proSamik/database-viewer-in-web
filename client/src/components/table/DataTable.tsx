@@ -98,7 +98,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
             ...prev,
             columnVisibility: {
                 ...prev.columnVisibility,
-                [columnName]: !prev.columnVisibility[columnName]
+                [columnName]: prev.columnVisibility[columnName] === false ? true : false
             }
         }));
     }, [setTableState]);
@@ -147,6 +147,31 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
             }
         }
     }, [schemaData?.columns, columnTextWrapping, setTableState]);
+
+    // Initialize column visibility to true (visible) for new columns
+    useEffect(() => {
+        if (schemaData?.columns) {
+            const newVisibility: Record<string, boolean> = {};
+            let needsUpdate = false;
+            
+            schemaData.columns.forEach(column => {
+                if (columnVisibility[column.name] === undefined) {
+                    newVisibility[column.name] = true; // Default to visible
+                    needsUpdate = true;
+                }
+            });
+            
+            if (needsUpdate) {
+                setTableState(prev => ({
+                    ...prev,
+                    columnVisibility: {
+                        ...prev.columnVisibility,
+                        ...newVisibility
+                    }
+                }));
+            }
+        }
+    }, [schemaData?.columns, columnVisibility, setTableState]);
 
     const handleHighlightCell = useCallback((rowId: string | number, columnName: string, color: string) => {
         setHighlightedCells(prev => ({
@@ -376,48 +401,53 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                 onActionsColumnToggle={handleActionsColumnToggle}
             />
 
-            <div className="overflow-x-auto">
-                <table className="w-full divide-y divide-gray-200 border border-gray-200 border-collapse" style={{ tableLayout: 'fixed' }}>
-                    <TableHeader
-                        columns={schemaData?.columns || []}
-                        columnVisibility={columnVisibility}
-                        columnTextWrapping={columnTextWrapping}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        onTextWrappingChange={handleTextWrappingChange}
-                        onColumnResize={handleColumnResize}
-                        columnWidths={columnWidths}
-                        actionsColumnVisible={actionsColumnVisible}
-                    />
-
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedRows.map((row) => (
-                            <TableRow
-                                key={String(row.id)}
-                                row={row}
+            {/* Improve the overflow container to ensure horizontal scrolling works properly */}
+            <div className="flex-1 overflow-auto">
+                <div className="min-w-full inline-block align-middle">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 border border-gray-200 border-collapse" style={{ tableLayout: 'fixed' }}>
+                            <TableHeader
                                 columns={schemaData?.columns || []}
                                 columnVisibility={columnVisibility}
                                 columnTextWrapping={columnTextWrapping}
-                                highlightedCells={highlightedCells}
-                                editingCell={editingCell}
-                                copiedCell={copiedCell}
-                                onCopyRow={() => handleCopyRow(row)}
-                                onEditRow={() => setEditDialog({ isOpen: true, mode: 'edit', data: row })}
-                                onDeleteRow={() => handleDeleteRow(String(row.id))}
-                                onEditCell={handleCellEdit}
-                                onCellEditConfirm={() => {
-                                    if (editingCell && editingCell.rowId === row.id) {
-                                        handleCellUpdate(String(row.id), editingCell.column, editingCell.tempValue);
-                                    }
-                                }}
-                                onCellEditCancel={() => setEditingCell(null)}
-                                onCellClick={handleCellClick}
+                                sortConfig={sortConfig}
+                                onSort={handleSort}
+                                onTextWrappingChange={handleTextWrappingChange}
+                                onColumnResize={handleColumnResize}
                                 columnWidths={columnWidths}
                                 actionsColumnVisible={actionsColumnVisible}
                             />
-                        ))}
-                    </tbody>
-                </table>
+
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {sortedRows.map((row) => (
+                                    <TableRow
+                                        key={String(row.id)}
+                                        row={row}
+                                        columns={schemaData?.columns || []}
+                                        columnVisibility={columnVisibility}
+                                        columnTextWrapping={columnTextWrapping}
+                                        highlightedCells={highlightedCells}
+                                        editingCell={editingCell}
+                                        copiedCell={copiedCell}
+                                        onCopyRow={() => handleCopyRow(row)}
+                                        onEditRow={() => setEditDialog({ isOpen: true, mode: 'edit', data: row })}
+                                        onDeleteRow={() => handleDeleteRow(String(row.id))}
+                                        onEditCell={handleCellEdit}
+                                        onCellEditConfirm={() => {
+                                            if (editingCell && editingCell.rowId === row.id) {
+                                                handleCellUpdate(String(row.id), editingCell.column, editingCell.tempValue);
+                                            }
+                                        }}
+                                        onCellEditCancel={() => setEditingCell(null)}
+                                        onCellClick={handleCellClick}
+                                        columnWidths={columnWidths}
+                                        actionsColumnVisible={actionsColumnVisible}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <TablePagination
