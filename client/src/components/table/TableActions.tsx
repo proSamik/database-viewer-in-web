@@ -1,4 +1,5 @@
 import { ClipboardIcon, CheckIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { CSSProperties } from 'react';
 
 interface TableActionsProps {
     rowId: string | number;
@@ -7,6 +8,7 @@ interface TableActionsProps {
     onEdit: () => void;
     onDelete: () => void;
     className?: string;
+    style?: CSSProperties;
 }
 
 /**
@@ -18,11 +20,15 @@ export function TableActions({
     onCopy,
     onEdit,
     onDelete,
-    className = ''
+    className = '',
+    style = {}
 }: TableActionsProps) {
     return (
-        <td className={`w-24 px-4 py-4 sticky left-0 bg-white z-10 ${className}`}>
-            <div className="flex items-center space-x-2">
+        <td 
+            className={`px-2 py-4 sticky left-0 bg-white z-10 ${className}`}
+            style={style}
+        >
+            <div className="flex items-center space-x-1 justify-center">
                 <button
                     onClick={onCopy}
                     className="p-1 rounded hover:bg-gray-100"
