@@ -3,20 +3,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePersistedState } from '@/hooks/usePersistedState';
-import { TableSchema, TableResponse, TableViewerState, EditDialogState, EditingCellState, CellValue } from '@/types/TableViewerTypes';
+import { TableSchema, TableResponse, TableViewerState, EditDialogState, CellValue } from '@/types/TableViewerTypes';
 import { EditRowDialog } from '@/components/EditRowDialog';
 import { TableHeader } from '@/components/table/TableHeader';
 import { TableToolbar } from '@/components/table/TableToolbar';
 import { TableRow } from '@/components/table/TableRow';
 import { TablePagination } from '@/components/table/TablePagination';
-import { 
-    formatCellValue, 
-    getInputType, 
-    isTimestampType, 
-    getPrimaryKeyColumn,
-    getWrappingClass
-} from '@/lib/TableViewerUtils';
-import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface DataTableProps {
     tableName: string;
@@ -29,7 +21,7 @@ type TableRow = Record<string, CellValue> & { id: string | number };
 /**
  * A data table component with sorting, filtering, pagination, and inline editing capabilities
  */
-export function DataTable({ tableName, onReset }: DataTableProps) {
+export function DataTable({ tableName}: DataTableProps) {
     const queryClient = useQueryClient();
 
     // State management
