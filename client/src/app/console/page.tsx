@@ -18,12 +18,22 @@ export default function ConsolePage() {
     // Add connection verification
     const verifyConnection = useCallback(async (config: ConnectionConfig) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/connect`, {
+            // Determine the endpoint based on connection type
+            const endpoint = config.type === 'direct' 
+                ? `${process.env.NEXT_PUBLIC_API_URL}/api/connect/direct`
+                : `${process.env.NEXT_PUBLIC_API_URL}/api/connect`;
+
+            // Prepare the payload based on connection type
+            const payload = config.type === 'direct' 
+                ? { url: config.url }
+                : config;
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(config),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
@@ -65,18 +75,7 @@ export default function ConsolePage() {
 
     const handleConnect = async (config: ConnectionConfig) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/connect`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(config),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to connect');
-            }
-
+            await verifyConnection(config);
             setConnectionConfig(config);
         } catch (error) {
             console.error('Connection error:', error);
