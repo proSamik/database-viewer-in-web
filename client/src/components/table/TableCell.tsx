@@ -1,7 +1,7 @@
-import { Switch } from '@headlessui/react';
+import { useState } from 'react';
+import { Column, CellValue, EditingCellState } from '@/types/TableViewerTypes';
+import { formatCellValue, getInputType, isTimestampType, getWrappingClass } from '@/lib/TableViewerUtils';
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { CellValue, Column, EditingCellState } from '@/types/TableViewerTypes';
-import { formatCellValue, getInputType, isTimestampType } from '@/lib/TableViewerUtils';
 
 interface TableCellProps {
     column: Column;
@@ -11,10 +11,12 @@ interface TableCellProps {
     onEdit: (value: CellValue) => void;
     onConfirm: () => void;
     onCancel: () => void;
+    onCellClick?: () => void;
 }
 
 /**
- * Renders a table cell with editing capabilities
+ * Renders a table cell with proper formatting and editing capabilities
+ * Supports different text wrapping modes: wrap, truncate, and normal
  */
 export function TableCell({
     column,
@@ -23,44 +25,51 @@ export function TableCell({
     wrappingStyle,
     onEdit,
     onConfirm,
-    onCancel
+    onCancel,
+    onCellClick
 }: TableCellProps) {
+    // If the cell is being edited, show the edit interface
     if (editingCell) {
         return (
             <div className="flex items-center min-w-0 max-w-full">
                 <div className="flex-1 min-w-0">
                     {column.dataType.toLowerCase() === 'boolean' ? (
-                        <Switch
+                        <input
+                            type="checkbox"
                             checked={Boolean(editingCell.tempValue)}
-                            onChange={(checked) => onEdit(checked)}
-                            className={`${
-                                editingCell.tempValue ? 'bg-blue-600' : 'bg-gray-200'
-                            } relative inline-flex h-6 w-11 items-center rounded-full`}
-                        >
-                            <span className={`${
-                                editingCell.tempValue ? 'translate-x-6' : 'translate-x-1'
-                            } inline-block h-4 w-4 transform rounded-full bg-white transition`} />
-                        </Switch>
+                            onChange={(e) => onEdit(e.target.checked)}
+                            className="w-4 h-4"
+                        />
+                    ) : isTimestampType(column.dataType) ? (
+                        <input
+                            type="datetime-local"
+                            value={String(editingCell.tempValue || '')}
+                            onChange={(e) => onEdit(e.target.value)}
+                            className="w-full p-1 border rounded"
+                            autoFocus
+                        />
                     ) : (
                         <input
                             type={getInputType(column.dataType)}
-                            value={String(editingCell.tempValue ?? '')}
+                            value={String(editingCell.tempValue || '')}
                             onChange={(e) => onEdit(e.target.value)}
                             className="w-full p-1 border rounded"
                             autoFocus
                         />
                     )}
                 </div>
-                <div className="flex items-center space-x-1 ml-2">
+                <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
                     <button
                         onClick={onConfirm}
                         className="p-1 rounded hover:bg-green-50 text-green-600"
+                        title="Confirm"
                     >
                         <CheckIcon className="h-4 w-4" />
                     </button>
                     <button
                         onClick={onCancel}
                         className="p-1 rounded hover:bg-red-50 text-red-600"
+                        title="Cancel"
                     >
                         <XMarkIcon className="h-4 w-4" />
                     </button>
@@ -69,14 +78,12 @@ export function TableCell({
         );
     }
 
-    const wrappingClass = {
-        wrap: 'whitespace-normal break-words',
-        truncate: 'truncate',
-        normal: 'whitespace-pre overflow-x-auto'
-    }[wrappingStyle] || 'whitespace-nowrap';
-
+    // Otherwise, show the formatted value with appropriate wrapping
     return (
-        <div className={`cursor-pointer hover:bg-gray-50 p-1 rounded ${wrappingClass}`}>
+        <div 
+            className={`${getWrappingClass(wrappingStyle)} cursor-pointer hover:bg-gray-50 p-1 rounded`}
+            onClick={onCellClick}
+        >
             {formatCellValue(value, column.dataType)}
         </div>
     );
