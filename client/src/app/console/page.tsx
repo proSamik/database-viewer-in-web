@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ConnectionConfig } from '@/types';
 import { DataTable } from '@/components/table/DataTable';
 import { usePersistedState } from '@/hooks/usePersistedState';
@@ -14,6 +14,12 @@ interface TablesResponse {
 export default function ConsolePage() {
     const [selectedTable, setSelectedTable] = useState<string | null>(null);
     const [connectionConfig, setConnectionConfig] = usePersistedState<ConnectionConfig | null>('connectionConfig', null);
+    const [isEditingDatabase, setIsEditingDatabase] = useState(false);
+    const [databaseName, setDatabaseName] = useState('');
+    const [databaseError, setDatabaseError] = useState<string | null>(null);
+    const databaseInputRef = useRef<HTMLInputElement>(null);
+    const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
+    const queryClient = useQueryClient();
 
     // Add connection verification
     const verifyConnection = useCallback(async (config: ConnectionConfig) => {
@@ -88,6 +94,62 @@ export default function ConsolePage() {
         setSelectedTable(null);
     };
 
+    // Add function to handle database name change
+    const handleDatabaseChange = async () => {
+        if (!connectionConfig || connectionConfig.type !== 'ngrok' || !databaseName.trim()) {
+            return;
+        }
+
+        // Don't do anything if the database name hasn't changed
+        if (databaseName.trim() === connectionConfig.database) {
+            setIsEditingDatabase(false);
+            return;
+        }
+
+        setIsUpdatingDatabase(true);
+        setDatabaseError(null);
+
+        try {
+            // Create updated config
+            const updatedConfig: ConnectionConfig = {
+                ...connectionConfig,
+                database: databaseName.trim()
+            };
+
+            // Verify the updated connection
+            await verifyConnection(updatedConfig);
+            
+            // If successful, update the stored config
+            setConnectionConfig(updatedConfig);
+            setIsEditingDatabase(false);
+            
+            // Reset selected table since we're connecting to a new database
+            setSelectedTable(null);
+            
+            // Invalidate and refetch the tables query
+            queryClient.invalidateQueries({ queryKey: ['tables'] });
+        } catch (error) {
+            console.error('Database update error:', error);
+            setDatabaseError('Failed to connect with the new database name');
+        } finally {
+            setIsUpdatingDatabase(false);
+        }
+    };
+
+    // Initialize database name from config
+    useEffect(() => {
+        if (connectionConfig?.database) {
+            setDatabaseName(connectionConfig.database);
+        }
+    }, [connectionConfig]);
+
+    // Focus input when editing starts
+    useEffect(() => {
+        if (isEditingDatabase && databaseInputRef.current) {
+            databaseInputRef.current.focus();
+        }
+    }, [isEditingDatabase]);
+
     if (!connectionConfig) {
         return (
             <div className="flex items-center justify-center p-4">
@@ -111,7 +173,7 @@ export default function ConsolePage() {
                             className="px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="">Select a table</option>
-                            {tables?.tables.map((table) => (
+                            {tables && tables.tables && tables.tables.map((table) => (
                                 <option key={table} value={table}>
                                     {table}
                                 </option>
@@ -121,6 +183,59 @@ export default function ConsolePage() {
                         <h1 className="text-xl font-bold text-white">
                             {selectedTable ? `Table: ${selectedTable}` : 'Database Console'}
                         </h1>
+                        
+                        {/* Database name display and edit for ngrok connections */}
+                        {connectionConfig?.type === 'ngrok' && (
+                            <div className="flex items-center ml-4">
+                                <span className="text-gray-400 mr-2">Database:</span>
+                                {isEditingDatabase ? (
+                                    <div className="flex items-center">
+                                        <input
+                                            ref={databaseInputRef}
+                                            type="text"
+                                            value={databaseName}
+                                            onChange={(e) => setDatabaseName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleDatabaseChange();
+                                                } else if (e.key === 'Escape') {
+                                                    setIsEditingDatabase(false);
+                                                    setDatabaseName(connectionConfig.database);
+                                                    setDatabaseError(null);
+                                                }
+                                            }}
+                                            onBlur={handleDatabaseChange}
+                                            disabled={isUpdatingDatabase}
+                                            className="px-2 py-1 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                                        />
+                                        {isUpdatingDatabase && (
+                                            <span className="ml-2 text-blue-400 text-sm">Connecting...</span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div 
+                                        className="flex items-center cursor-pointer group"
+                                        onClick={() => setIsEditingDatabase(true)}
+                                    >
+                                        <span className="text-white font-medium">{connectionConfig.database}</span>
+                                        <svg 
+                                            xmlns="http://www.w3.org/2000/svg" 
+                                            className="h-4 w-4 ml-1 text-gray-400 group-hover:text-white" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24" 
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        {/* Display database error if any */}
+                        {databaseError && (
+                            <span className="text-red-400 text-sm ml-2">{databaseError}</span>
+                        )}
                     </div>
 
                     <button
