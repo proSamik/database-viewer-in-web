@@ -79,10 +79,17 @@ export function TableCell({
     }
 
     // Otherwise, show the formatted value with appropriate wrapping
+    const baseClasses = "cursor-pointer hover:bg-gray-50 p-1 rounded";
+    const wrapClasses = getWrappingClass(wrappingStyle);
+    
+    // For "Show all" mode, use specific styling
+    const showAllClasses = wrappingStyle === 'normal' ? 'w-full inline-block' : '';
+    
     return (
         <div 
-            className={`${getWrappingClass(wrappingStyle)} cursor-pointer hover:bg-gray-50 p-1 rounded`}
+            className={`${baseClasses} ${wrapClasses} ${showAllClasses}`}
             onClick={onCellClick}
+            style={wrappingStyle === 'normal' ? { width: '100%', maxWidth: 'none' } : {}}
         >
             {formatCellValue(value, column.dataType)}
         </div>
