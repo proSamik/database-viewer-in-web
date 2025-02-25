@@ -10,6 +10,7 @@ interface TableHeaderProps {
     onTextWrappingChange: (columnName: string, value: 'wrap' | 'truncate') => void;
     onColumnResize?: (columnName: string, width: number) => void;
     columnWidths: Record<string, number>;
+    actionsColumnVisible?: boolean;
 }
 
 /**
@@ -23,7 +24,8 @@ export function TableHeader({
     onSort,
     onTextWrappingChange,
     onColumnResize,
-    columnWidths
+    columnWidths,
+    actionsColumnVisible = true
 }: TableHeaderProps) {
     // State to track which column is being resized
     const [resizingColumn, setResizingColumn] = useState<string | null>(null);
@@ -42,6 +44,10 @@ export function TableHeader({
             setResizingColumn(columnName);
             setStartX(e.clientX);
             setStartWidth(column.offsetWidth);
+            
+            // Add a class to the body to change cursor during resize
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
         }
     };
     
@@ -49,15 +55,20 @@ export function TableHeader({
     useEffect(() => {
         const handleResize = (e: MouseEvent) => {
             if (resizingColumn) {
-                const width = Math.max(25, startWidth + (e.clientX - startX));
+                // Calculate new width based on the difference from start position
+                const diff = e.clientX - startX;
+                const newWidth = Math.max(25, startWidth + diff);
+                
                 if (onColumnResize) {
-                    onColumnResize(resizingColumn, width);
+                    onColumnResize(resizingColumn, newWidth);
                 }
             }
         };
         
         const handleResizeEnd = () => {
             setResizingColumn(null);
+            document.body.style.removeProperty('cursor');
+            document.body.style.removeProperty('user-select');
         };
         
         if (resizingColumn) {
@@ -75,11 +86,13 @@ export function TableHeader({
         <thead className="bg-gray-50">
             <tr>
                 {/* Actions column header */}
-                <th className="px-2 py-3 sticky left-0 bg-gray-50 z-10 border border-gray-200" style={{ width: '60px', maxWidth: '60px' }}>
-                    <div className="text-xs font-medium text-gray-500 uppercase">
-                        Actions
-                    </div>
-                </th>
+                {actionsColumnVisible && (
+                    <th className="px-2 py-3 sticky left-0 bg-gray-50 z-10 border border-gray-200" style={{ width: '25px', maxWidth: '25px' }}>
+                        <div className="text-xs font-medium text-gray-500 uppercase truncate">
+                            Actions
+                        </div>
+                    </th>
+                )}
 
                 {columns.map((column) => {
                     // Skip columns that are hidden
