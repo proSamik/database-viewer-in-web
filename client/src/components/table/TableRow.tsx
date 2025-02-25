@@ -22,6 +22,7 @@ interface TableRowProps {
     onCellEditConfirm: () => void;
     onCellEditCancel: () => void;
     onCellClick?: (rowId: string | number, column: string, value: CellValue) => void;
+    columnWidths: Record<string, number>;
 }
 
 /**
@@ -41,7 +42,8 @@ export function TableRow({
     onEditCell,
     onCellEditConfirm,
     onCellEditCancel,
-    onCellClick
+    onCellClick,
+    columnWidths
 }: TableRowProps) {
     return (
         <tr className="hover:bg-gray-50">
@@ -51,6 +53,7 @@ export function TableRow({
                 onCopy={onCopyRow}
                 onEdit={onEditRow}
                 onDelete={onDeleteRow}
+                className="border border-gray-200"
             />
 
             {columns.map((column) => {
@@ -59,17 +62,17 @@ export function TableRow({
                     return null;
                 }
                 
-                const wrappingStyle = columnTextWrapping[column.name] || 'normal';
+                const wrappingStyle = columnTextWrapping[column.name] || 'truncate';
+                const width = columnWidths[column.name] || (wrappingStyle === 'normal' ? 300 : 100);
                 
                 return (
                     <td 
                         key={column.name} 
-                        className="px-6 py-4 text-sm text-gray-900 group relative"
+                        className="px-6 py-4 text-sm text-gray-900 group relative border border-gray-200"
                         style={{
                             backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent',
-                            ...(wrappingStyle === 'normal' 
-                                ? { width: 'auto', minWidth: '300px' } 
-                                : { minWidth: '200px', maxWidth: '300px' })
+                            width: `${width}px`,
+                            minWidth: '100px'
                         }}
                     >
                         <div className={`relative ${wrappingStyle === 'normal' ? '' : 'overflow-hidden'}`}>
