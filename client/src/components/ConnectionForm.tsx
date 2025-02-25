@@ -13,12 +13,26 @@ export function ConnectionForm({ onSubmit }: Props) {
         url: '',
         username: '',
         password: '',
-        database: ''
+        database: '',
+        type: 'ngrok'
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         await onSubmit(formData);
+    };
+
+    const handleTypeChange = (type: ConnectionType) => {
+        setConnectionType(type);
+        setFormData(prev => ({
+            ...prev,
+            type,
+            ...(type === 'direct' ? {
+                username: '',
+                password: '',
+                database: ''
+            } : {})
+        }));
     };
 
     return (
@@ -27,7 +41,7 @@ export function ConnectionForm({ onSubmit }: Props) {
             <div className="flex space-x-4 mb-4">
                 <button
                     type="button"
-                    onClick={() => setConnectionType('ngrok')}
+                    onClick={() => handleTypeChange('ngrok')}
                     className={`flex-1 py-2 px-4 rounded-md ${
                         connectionType === 'ngrok'
                             ? 'bg-blue-600 text-white'
@@ -38,7 +52,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                 </button>
                 <button
                     type="button"
-                    onClick={() => setConnectionType('direct')}
+                    onClick={() => handleTypeChange('direct')}
                     className={`flex-1 py-2 px-4 rounded-md ${
                         connectionType === 'direct'
                             ? 'bg-blue-600 text-white'
