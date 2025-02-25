@@ -7,7 +7,7 @@ interface TableCellProps {
     column: Column;
     value: CellValue;
     editingCell: EditingCellState | null;
-    wrappingStyle: 'wrap' | 'truncate' | 'normal';
+    wrappingStyle: 'wrap' | 'truncate';
     onEdit: (value: CellValue) => void;
     onConfirm: () => void;
     onCancel: () => void;
@@ -16,7 +16,7 @@ interface TableCellProps {
 
 /**
  * Renders a table cell with proper formatting and editing capabilities
- * Supports different text wrapping modes: wrap, truncate, and normal
+ * Supports different text wrapping modes: wrap and truncate
  */
 export function TableCell({
     column,
@@ -82,14 +82,11 @@ export function TableCell({
     const baseClasses = "cursor-pointer hover:bg-gray-50 p-1 rounded";
     const wrapClasses = getWrappingClass(wrappingStyle);
     
-    // For "Show all" mode, use specific styling
-    const showAllClasses = wrappingStyle === 'normal' ? 'w-full inline-block' : '';
-    
     return (
         <div 
-            className={`${baseClasses} ${wrapClasses} ${showAllClasses}`}
+            className={`${baseClasses} ${wrapClasses} w-full block`}
             onClick={onCellClick}
-            style={wrappingStyle === 'normal' ? { width: '100%', maxWidth: 'none' } : {}}
+            title={String(formatCellValue(value, column.dataType))}
         >
             {formatCellValue(value, column.dataType)}
         </div>
