@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ConnectionConfig } from '@/types';
-import { TableViewer } from '@/components/TableViewer';
+import { DataTable } from '@/components/table/DataTable';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { ConnectionForm } from '@/components/ConnectionForm';
 
@@ -143,7 +143,7 @@ export default function ConsolePage() {
                         <p className="text-red-400">Error: {error.message}</p>
                     </div>
                 ) : selectedTable ? (
-                    <TableViewer
+                    <DataTable
                         tableName={selectedTable}
                         onReset={handleReset}
                     />
