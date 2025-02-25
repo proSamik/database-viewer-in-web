@@ -6,6 +6,7 @@ import { ConnectionConfig } from '@/types';
 import { DataTable } from '@/components/table/DataTable';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { ConnectionForm } from '@/components/ConnectionForm';
+import { ConsoleHeader } from '@/components/console/ConsoleHeader';
 
 interface TablesResponse {
     tables: string[];
@@ -161,112 +162,124 @@ export default function ConsolePage() {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex flex-col">
-            {/* Header */}
-            <div className="bg-gray-800 p-4 border-b border-gray-700">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        {/* Table Selection Dropdown */}
-                        <select
-                            value={selectedTable || ''}
-                            onChange={(e) => setSelectedTable(e.target.value)}
-                            className="px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">Select a table</option>
-                            {tables && tables.tables && tables.tables.map((table) => (
-                                <option key={table} value={table}>
-                                    {table}
-                                </option>
-                            ))}
-                        </select>
+        <div className="h-screen flex flex-col">
+            {/* Include the ConsoleHeader with the proper props */}
+            <ConsoleHeader 
+                connectionConfig={connectionConfig} 
+                onUpdateConnection={handleConnect}
+            />
+            
+            <div className="h-[calc(100vh-4rem)] flex flex-col">
+                {/* Header */}
+                <div className="bg-gray-800 p-4 border-b border-gray-700">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            {/* Table Selection Dropdown */}
+                            <select
+                                value={selectedTable || ''}
+                                onChange={(e) => setSelectedTable(e.target.value)}
+                                className="px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Select a table</option>
+                                {tables && tables.tables && tables.tables.map((table) => (
+                                    <option key={table} value={table}>
+                                        {table}
+                                    </option>
+                                ))}
+                            </select>
 
-                        <h1 className="text-xl font-bold text-white">
-                            {selectedTable ? `Table: ${selectedTable}` : 'Database Console'}
-                        </h1>
-                        
-                        {/* Database name display and edit for ngrok connections */}
-                        {connectionConfig?.type === 'ngrok' && (
-                            <div className="flex items-center ml-4">
-                                <span className="text-gray-400 mr-2">Database:</span>
-                                {isEditingDatabase ? (
-                                    <div className="flex items-center">
-                                        <input
-                                            ref={databaseInputRef}
-                                            type="text"
-                                            value={databaseName}
-                                            onChange={(e) => setDatabaseName(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleDatabaseChange();
-                                                } else if (e.key === 'Escape') {
-                                                    setIsEditingDatabase(false);
-                                                    setDatabaseName(connectionConfig.database);
-                                                    setDatabaseError(null);
-                                                }
-                                            }}
-                                            onBlur={handleDatabaseChange}
-                                            disabled={isUpdatingDatabase}
-                                            className="px-2 py-1 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
-                                        />
-                                        {isUpdatingDatabase && (
-                                            <span className="ml-2 text-blue-400 text-sm">Connecting...</span>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div 
-                                        className="flex items-center cursor-pointer group"
-                                        onClick={() => setIsEditingDatabase(true)}
-                                    >
-                                        <span className="text-white font-medium">{connectionConfig.database}</span>
-                                        <svg 
-                                            xmlns="http://www.w3.org/2000/svg" 
-                                            className="h-4 w-4 ml-1 text-gray-400 group-hover:text-white" 
-                                            fill="none" 
-                                            viewBox="0 0 24 24" 
-                                            stroke="currentColor"
+                            <h1 className="text-xl font-bold text-white">
+                                {selectedTable ? `Table: ${selectedTable}` : 'Database Console'}
+                            </h1>
+                            
+                            {/* Database name display and edit for ngrok connections */}
+                            {connectionConfig?.type === 'ngrok' && (
+                                <div className="flex items-center ml-4">
+                                    <span className="text-gray-400 mr-2">Database:</span>
+                                    {isEditingDatabase ? (
+                                        <div className="flex items-center">
+                                            <input
+                                                ref={databaseInputRef}
+                                                type="text"
+                                                value={databaseName}
+                                                onChange={(e) => setDatabaseName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        handleDatabaseChange();
+                                                    } else if (e.key === 'Escape') {
+                                                        setIsEditingDatabase(false);
+                                                        setDatabaseName(connectionConfig.database);
+                                                        setDatabaseError(null);
+                                                    }
+                                                }}
+                                                onBlur={handleDatabaseChange}
+                                                disabled={isUpdatingDatabase}
+                                                className="px-2 py-1 bg-gray-700 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                                            />
+                                            {isUpdatingDatabase && (
+                                                <span className="ml-2 text-blue-400 text-sm">Connecting...</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div 
+                                            className="flex items-center cursor-pointer group"
+                                            onClick={() => setIsEditingDatabase(true)}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        
-                        {/* Display database error if any */}
-                        {databaseError && (
-                            <span className="text-red-400 text-sm ml-2">{databaseError}</span>
-                        )}
-                    </div>
+                                            <span className="text-white font-medium">{connectionConfig.database}</span>
+                                            <svg 
+                                                xmlns="http://www.w3.org/2000/svg" 
+                                                className="h-4 w-4 ml-1 text-gray-400 group-hover:text-white" 
+                                                fill="none" 
+                                                viewBox="0 0 24 24" 
+                                                stroke="currentColor"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {/* Display database error if any */}
+                            {databaseError && (
+                                <span className="text-red-400 text-sm ml-2">{databaseError}</span>
+                            )}
+                        </div>
 
-                    <button
-                        onClick={handleReset}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-                    >
-                        Disconnect
-                    </button>
+                        <button
+                            onClick={handleReset}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                        >
+                            Disconnect
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-hidden">
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-gray-400">Loading tables...</p>
+                {/* Main Content */}
+                <div className="flex-1 overflow-auto">
+                    <div className="min-w-full inline-block align-middle">
+                        <div className="overflow-x-auto">
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-gray-400">Loading tables...</p>
+                                </div>
+                            ) : error ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-red-400">Error: {error.message}</p>
+                                </div>
+                            ) : selectedTable ? (
+                                <DataTable
+                                    tableName={selectedTable}
+                                    onReset={handleReset}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-gray-400">Select a table to view its data</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                ) : error ? (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-red-400">Error: {error.message}</p>
-                    </div>
-                ) : selectedTable ? (
-                    <DataTable
-                        tableName={selectedTable}
-                        onReset={handleReset}
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-gray-400">Select a table to view its data</p>
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );
