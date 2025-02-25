@@ -84,6 +84,12 @@ export default function ConsolePage() {
         try {
             await verifyConnection(config);
             setConnectionConfig(config);
+            
+            // Reset selected table since we're connecting to a potentially different database
+            setSelectedTable(null);
+            
+            // Invalidate and refetch the tables query to update the table list
+            queryClient.invalidateQueries({ queryKey: ['tables'] });
         } catch (error) {
             console.error('Connection error:', error);
             throw error;
