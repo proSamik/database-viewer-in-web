@@ -57,7 +57,7 @@ export function TableRow({
                     onEdit={onEditRow}
                     onDelete={onDeleteRow}
                     className="border border-gray-200"
-                    style={{ width: '25px', maxWidth: '25px' }}
+                    style={{ width: '65px', maxWidth: '65px' }}
                 />
             )}
 
