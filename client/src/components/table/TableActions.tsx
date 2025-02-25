@@ -6,6 +6,7 @@ interface TableActionsProps {
     onCopy: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    className?: string;
 }
 
 /**
@@ -16,10 +17,11 @@ export function TableActions({
     copiedCell,
     onCopy,
     onEdit,
-    onDelete
+    onDelete,
+    className = ''
 }: TableActionsProps) {
     return (
-        <td className="w-24 px-4 py-4 sticky left-0 bg-white z-10">
+        <td className={`w-24 px-4 py-4 sticky left-0 bg-white z-10 ${className}`}>
             <div className="flex items-center space-x-2">
                 <button
                     onClick={onCopy}
