@@ -112,7 +112,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
         }));
     }, [setTableState]);
 
-    const handleTextWrappingChange = useCallback((columnName: string, value: 'wrap' | 'truncate' | 'normal') => {
+    const handleTextWrappingChange = useCallback((columnName: string, value: 'wrap' | 'truncate') => {
         setTableState(prev => ({
             ...prev,
             columnTextWrapping: {
@@ -125,7 +125,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
     // Initialize column text wrapping to 'truncate' for new columns
     useEffect(() => {
         if (schemaData?.columns) {
-            const newWrapping: Record<string, 'wrap' | 'truncate' | 'normal'> = {};
+            const newWrapping: Record<string, 'wrap' | 'truncate'> = {};
             let needsUpdate = false;
             
             schemaData.columns.forEach(column => {
@@ -363,7 +363,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
             />
 
             <div className="overflow-x-auto">
-                <table className="w-full divide-y divide-gray-200 border border-gray-200 border-collapse">
+                <table className="w-full divide-y divide-gray-200 border border-gray-200 border-collapse" style={{ tableLayout: 'fixed' }}>
                     <TableHeader
                         columns={schemaData?.columns || []}
                         columnVisibility={columnVisibility}
