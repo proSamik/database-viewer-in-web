@@ -33,21 +33,69 @@ func (h *DatabaseHandler) HandleConnect(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Parse the request body
 	var connConfig database.ConnectionConfig
 	if err := json.NewDecoder(r.Body).Decode(&connConfig); err != nil {
+		log.Printf("Error parsing connection request: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	// Validate required fields
+	if connConfig.URL == "" {
+		log.Printf("Missing URL in connection request")
+		http.Error(w, "Database URL is required", http.StatusBadRequest)
+		return
+	}
+
+	if connConfig.Username == "" {
+		log.Printf("Missing username in connection request")
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	if connConfig.Database == "" {
+		log.Printf("Missing database name in connection request")
+		http.Error(w, "Database name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Log connection attempt (without password)
+	log.Printf("Connection attempt with URL: %s, Username: %s, Database: %s",
+		connConfig.URL, connConfig.Username, connConfig.Database)
+
 	// Try to connect
 	if err := h.dbManager.Connect(connConfig); err != nil {
+		log.Printf("Connection failed: %v", err)
+
+		// Check error type to determine appropriate status code
+		if strings.Contains(strings.ToLower(err.Error()), "authentication") ||
+			strings.Contains(strings.ToLower(err.Error()), "password") {
+			http.Error(w, fmt.Sprintf("Authentication failed: %v", err), http.StatusUnauthorized)
+			return
+		}
+
+		if strings.Contains(strings.ToLower(err.Error()), "no such host") ||
+			strings.Contains(strings.ToLower(err.Error()), "connection refused") {
+			http.Error(w, fmt.Sprintf("Connection refused: %v", err), http.StatusBadGateway)
+			return
+		}
+
+		// Default error response
 		http.Error(w, fmt.Sprintf("Failed to connect: %v", err), http.StatusBadRequest)
 		return
 	}
 
+	// Log successful connection
+	log.Printf("Successfully connected to database %s via %s",
+		connConfig.Database, connConfig.URL)
+
+	// Return success response
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "connected",
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":   "connected",
+		"database": connConfig.Database,
+		"host":     connConfig.URL,
 	})
 }
 
