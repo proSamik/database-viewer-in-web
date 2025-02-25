@@ -9,6 +9,7 @@ interface TableToolbarProps {
     selectedColumn: string | null;
     columnVisibility: Record<string, boolean>;
     isLoading: boolean;
+    actionsColumnVisible: boolean;
     onSearchChange: (value: string) => void;
     onColumnMenuToggle: () => void;
     onHighlightMenuToggle: () => void;
@@ -17,6 +18,7 @@ interface TableToolbarProps {
     onHighlightColor: (color: string) => void;
     onClearHighlights: () => void;
     onReload: () => void;
+    onActionsColumnToggle: () => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export function TableToolbar({
     selectedColumn,
     columnVisibility,
     isLoading,
+    actionsColumnVisible,
     onSearchChange,
     onColumnMenuToggle,
     onHighlightMenuToggle,
@@ -37,7 +40,8 @@ export function TableToolbar({
     onColumnSelect,
     onHighlightColor,
     onClearHighlights,
-    onReload
+    onReload,
+    onActionsColumnToggle
 }: TableToolbarProps) {
     return (
         <div className="flex items-center space-x-4 mb-4 p-2 bg-white border rounded-lg">
@@ -63,6 +67,17 @@ export function TableToolbar({
                 {showColumnMenu && (
                     <div className="absolute mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
                         <div className="p-2">
+                            {/* Actions column toggle */}
+                            <div className="flex items-center p-2 hover:bg-gray-50 border-b mb-2">
+                                <input
+                                    type="checkbox"
+                                    checked={actionsColumnVisible}
+                                    onChange={onActionsColumnToggle}
+                                    className="mr-2"
+                                />
+                                <span className="text-sm font-medium">Actions Column</span>
+                            </div>
+                            
                             {columns.map(column => (
                                 <div key={column.name} className="flex items-center p-2 hover:bg-gray-50">
                                     <input
