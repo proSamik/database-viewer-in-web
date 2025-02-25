@@ -1,4 +1,4 @@
-import { ConsoleHeader } from '@/components/console/ConsoleHeader';
+'use client';
 
 export default function ConsoleLayout({
     children,
@@ -7,8 +7,8 @@ export default function ConsoleLayout({
 }) {
     return (
         <div className="min-h-screen bg-gray-900">
-            <ConsoleHeader />
-            <main className="h-[calc(100vh-4rem)]">
+            {/* The ConsoleHeader is now included in the page component */}
+            <main className="h-screen">
                 {children}
             </main>
         </div>
