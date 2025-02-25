@@ -1,4 +1,4 @@
-import { Column, CellValue, EditingCellState } from '@/types/TableViewerTypes';
+import { Column, CellValue } from '@/types/TableViewerTypes';
 import { TableActions } from './TableActions';
 import { TableCell } from './TableCell';
 
@@ -8,14 +8,20 @@ interface TableRowProps {
     columnVisibility: Record<string, boolean>;
     columnTextWrapping: Record<string, 'wrap' | 'truncate' | 'normal'>;
     highlightedCells: Record<string, string>;
-    editingCell: EditingCellState | null;
+    editingCell: {
+        rowId: string | number;
+        column: string;
+        value: CellValue;
+        tempValue: CellValue;
+    } | null;
     copiedCell: string | null;
     onCopyRow: () => void;
     onEditRow: () => void;
     onDeleteRow: () => void;
-    onEditCell: (column: string, value: CellValue) => void;
+    onEditCell: (value: CellValue) => void;
     onCellEditConfirm: () => void;
     onCellEditCancel: () => void;
+    onCellClick?: (rowId: string | number, column: string, value: CellValue) => void;
 }
 
 /**
@@ -34,7 +40,8 @@ export function TableRow({
     onDeleteRow,
     onEditCell,
     onCellEditConfirm,
-    onCellEditCancel
+    onCellEditCancel,
+    onCellClick
 }: TableRowProps) {
     return (
         <tr className="hover:bg-gray-50">
@@ -60,11 +67,12 @@ export function TableRow({
                         <TableCell
                             column={column}
                             value={row[column.name]}
-                            editingCell={editingCell?.column === column.name ? editingCell : null}
+                            editingCell={editingCell?.rowId === row.id && editingCell?.column === column.name ? editingCell : null}
                             wrappingStyle={columnTextWrapping[column.name] || 'normal'}
-                            onEdit={(value) => onEditCell(column.name, value)}
+                            onEdit={onEditCell}
                             onConfirm={onCellEditConfirm}
                             onCancel={onCellEditCancel}
+                            onCellClick={onCellClick ? () => onCellClick(row.id, column.name, row[column.name]) : undefined}
                         />
                     </div>
                 </td>
