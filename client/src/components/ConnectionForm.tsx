@@ -1,21 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ConnectionConfig, ConnectionType } from '@/types';
 
 interface Props {
     onSubmit: (config: ConnectionConfig) => Promise<void>;
+    initialValues?: ConnectionConfig;
 }
 
-export function ConnectionForm({ onSubmit }: Props) {
-    const [connectionType, setConnectionType] = useState<ConnectionType>('ngrok');
-    const [formData, setFormData] = useState<ConnectionConfig>({
+/**
+ * Form component for database connection configuration
+ */
+export function ConnectionForm({ onSubmit, initialValues }: Props) {
+    const [connectionType, setConnectionType] = useState<ConnectionType>(initialValues?.type || 'ngrok');
+    const [formData, setFormData] = useState<ConnectionConfig>(initialValues || {
         url: '',
         username: '',
         password: '',
         database: '',
         type: 'ngrok'
     });
+
+    // Update form data when initialValues change
+    useEffect(() => {
+        if (initialValues) {
+            setFormData(initialValues);
+            setConnectionType(initialValues.type);
+        }
+    }, [initialValues]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +82,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                     </label>
                     <input
                         type="text"
-                        value={formData.url}
+                        value={formData.url || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
                         required
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -88,7 +100,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                         </label>
                         <input
                             type="text"
-                            value={formData.url}
+                            value={formData.url || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
                             required
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -102,7 +114,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                         </label>
                         <input
                             type="text"
-                            value={formData.username}
+                            value={formData.username || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
                             required
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -115,7 +127,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                         </label>
                         <input
                             type="password"
-                            value={formData.password}
+                            value={formData.password || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                             required
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -128,7 +140,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                         </label>
                         <input
                             type="text"
-                            value={formData.database}
+                            value={formData.database || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, database: e.target.value }))}
                             required
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -141,7 +153,7 @@ export function ConnectionForm({ onSubmit }: Props) {
                 type="submit"
                 className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-                Connect
+                {initialValues ? 'Update Connection' : 'Connect'}
             </button>
         </form>
     );
