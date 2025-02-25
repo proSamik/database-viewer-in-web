@@ -9,6 +9,14 @@ import { TableHeader } from '@/components/table/TableHeader';
 import { TableToolbar } from '@/components/table/TableToolbar';
 import { TableRow } from '@/components/table/TableRow';
 import { TablePagination } from '@/components/table/TablePagination';
+import { 
+    formatCellValue, 
+    getInputType, 
+    isTimestampType, 
+    getPrimaryKeyColumn,
+    getWrappingClass
+} from '@/lib/TableViewerUtils';
+import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface DataTableProps {
     tableName: string;
@@ -45,7 +53,12 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
     });
     const [copiedCell, setCopiedCell] = useState<string | null>(null);
     const [editDialog, setEditDialog] = useState<EditDialogState>({ isOpen: false, mode: 'create' });
-    const [editingCell, setEditingCell] = useState<EditingCellState | null>(null);
+    const [editingCell, setEditingCell] = useState<{
+        rowId: string | number;
+        column: string;
+        value: CellValue;
+        tempValue: CellValue;
+    } | null>(null);
     const [pageInput, setPageInput] = useState('1');
 
     const { columnVisibility, columnTextWrapping, pageSize } = tableState;
@@ -110,7 +123,7 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
         setHighlightedCells({});
     }, []);
 
-    const handleCopyRow = useCallback(async (row: Record<string, CellValue>) => {
+    const handleCopyRow = useCallback(async (row: TableRow) => {
         try {
             const rowText = Object.entries(row)
                 .filter(([key]) => key !== 'id' && !key.startsWith('_'))
@@ -129,10 +142,28 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
         }
     }, []);
 
-    const handleCellEdit = useCallback((column: string, value: CellValue) => {
+    /**
+     * Handles starting cell edit mode when a cell is clicked
+     */
+    const handleCellClick = useCallback((rowId: string | number, column: string, value: CellValue) => {
+        setEditingCell({
+            rowId,
+            column,
+            value,
+            tempValue: value
+        });
+    }, []);
+
+    /**
+     * Updates the temporary value during cell editing
+     */
+    const handleCellEdit = useCallback((value: CellValue) => {
         setEditingCell(prev => prev ? { ...prev, tempValue: value } : null);
     }, []);
 
+    /**
+     * Confirms and saves cell edits
+     */
     const handleCellUpdate = useCallback(async (pkValue: string | number, column: string, value: CellValue) => {
         try {
             const response = await fetch(
@@ -323,11 +354,12 @@ export function DataTable({ tableName, onReset }: DataTableProps) {
                                 onDeleteRow={() => handleDeleteRow(String(row.id))}
                                 onEditCell={handleCellEdit}
                                 onCellEditConfirm={() => {
-                                    if (editingCell) {
+                                    if (editingCell && editingCell.rowId === row.id) {
                                         handleCellUpdate(String(row.id), editingCell.column, editingCell.tempValue);
                                     }
                                 }}
                                 onCellEditCancel={() => setEditingCell(null)}
+                                onCellClick={handleCellClick}
                             />
                         ))}
                     </tbody>
