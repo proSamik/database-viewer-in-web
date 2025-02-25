@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Column, CellValue, EditingCellState } from '@/types/TableViewerTypes';
 import { formatCellValue, getInputType, isTimestampType, getWrappingClass } from '@/lib/TableViewerUtils';
 import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
