@@ -71,7 +71,7 @@ export function TableToolbar({
                         </button>
                         
                         {showColumnMenu && (
-                            <div className="absolute mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
+                            <div className="fixed mt-2 w-64 bg-white border rounded-lg shadow-lg z-[9999]" style={{ top: 'auto' }}>
                                 <div className="p-2 max-h-[50vh] overflow-y-auto">
                                     {/* Actions column toggle */}
                                     <div className="flex items-center p-2 hover:bg-gray-50 border-b mb-2">
@@ -110,7 +110,7 @@ export function TableToolbar({
                         </button>
                         
                         {showHighlightMenu && (
-                            <div className="absolute z-10 mt-2 w-64 bg-white border rounded-lg shadow-lg left-0 sm:right-0 sm:left-auto">
+                            <div className="fixed z-[9999] mt-2 w-64 bg-white border rounded-lg shadow-lg" style={{ top: 'auto' }}>
                                 <div className="p-4">
                                     <div className="flex justify-between items-center mb-2">
                                         <h3 className="text-sm font-medium">Highlight Columns</h3>
