@@ -17,16 +17,24 @@ interface ConsoleHeaderProps {
  */
 export function ConsoleHeader({ connectionConfig, onUpdateConnection }: ConsoleHeaderProps) {
   const [showConnectionForm, setShowConnectionForm] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   /**
    * Handles the connection form submission
    */
   const handleConnectionUpdate = async (config: ConnectionConfig) => {
+    setIsUpdating(true);
+    setUpdateError(null);
+    
     try {
       await onUpdateConnection(config);
       setShowConnectionForm(false);
     } catch (error) {
       console.error('Failed to update connection:', error);
+      setUpdateError('Failed to connect to database. Please check your connection details.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -62,15 +70,32 @@ export function ConsoleHeader({ connectionConfig, onUpdateConnection }: ConsoleH
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Change Database Connection</h2>
               <button 
-                onClick={() => setShowConnectionForm(false)}
+                onClick={() => {
+                  setShowConnectionForm(false);
+                  setUpdateError(null);
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 ×
               </button>
             </div>
+            
+            {updateError && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+                {updateError}
+              </div>
+            )}
+            
+            {isUpdating && (
+              <div className="mb-4 p-3 bg-blue-100 border border-blue-300 text-blue-700 rounded">
+                Connecting to database...
+              </div>
+            )}
+            
             <ConnectionForm 
               onSubmit={handleConnectionUpdate} 
-              initialValues={connectionConfig || {}} // Provide a default value to avoid TypeScript error
+              initialValues={connectionConfig}
+              disabled={isUpdating}
             />
           </div>
         </div>
