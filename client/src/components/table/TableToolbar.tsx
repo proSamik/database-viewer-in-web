@@ -82,7 +82,7 @@ export function TableToolbar({
                                 <div key={column.name} className="flex items-center p-2 hover:bg-gray-50">
                                     <input
                                         type="checkbox"
-                                        checked={!columnVisibility[column.name]}
+                                        checked={columnVisibility[column.name] !== false}
                                         onChange={() => onColumnVisibilityChange(column.name)}
                                         className="mr-2"
                                     />
