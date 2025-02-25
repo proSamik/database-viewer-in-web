@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ConnectionConfig, ConnectionType } from '@/types';
+import { ConnectionConfig } from '@/types';
 import { TableViewer } from '@/components/TableViewer';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { ConnectionForm } from '@/components/ConnectionForm';
