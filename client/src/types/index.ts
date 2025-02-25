@@ -3,6 +3,7 @@ export interface ConnectionConfig {
     username: string;
     password: string;
     database: string;
+    type: ConnectionType;
 }
 
 export interface TableColumn {
