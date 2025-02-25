@@ -21,4 +21,9 @@ RUN go build -o main .
 # Expose the port the app runs on
 EXPOSE 8080
 
+# Add a healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the application
 CMD ["./main"] 
