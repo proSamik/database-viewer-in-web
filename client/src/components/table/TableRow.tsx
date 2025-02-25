@@ -6,7 +6,7 @@ interface TableRowProps {
     row: Record<string, CellValue> & { id: string | number };
     columns: Column[];
     columnVisibility: Record<string, boolean>;
-    columnTextWrapping: Record<string, 'wrap' | 'truncate' | 'normal'>;
+    columnTextWrapping: Record<string, 'wrap' | 'truncate'>;
     highlightedCells: Record<string, string>;
     editingCell: {
         rowId: string | number;
@@ -54,6 +54,7 @@ export function TableRow({
                 onEdit={onEditRow}
                 onDelete={onDeleteRow}
                 className="border border-gray-200"
+                style={{ width: '60px', maxWidth: '60px' }}
             />
 
             {columns.map((column) => {
@@ -63,7 +64,7 @@ export function TableRow({
                 }
                 
                 const wrappingStyle = columnTextWrapping[column.name] || 'truncate';
-                const width = columnWidths[column.name] || (wrappingStyle === 'normal' ? 300 : 100);
+                const width = columnWidths[column.name] || 100;
                 
                 return (
                     <td 
@@ -72,10 +73,12 @@ export function TableRow({
                         style={{
                             backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent',
                             width: `${width}px`,
-                            minWidth: '100px'
+                            minWidth: '25px',
+                            maxWidth: `${width}px`,
+                            tableLayout: 'fixed'
                         }}
                     >
-                        <div className={`relative ${wrappingStyle === 'normal' ? '' : 'overflow-hidden'}`}>
+                        <div className={`relative ${wrappingStyle === 'wrap' ? '' : 'overflow-hidden'}`}>
                             <TableCell
                                 column={column}
                                 value={row[column.name]}
