@@ -53,30 +53,40 @@ export function TableRow({
                 onDelete={onDeleteRow}
             />
 
-            {columns.map((column) => !columnVisibility[column.name] && (
-                <td 
-                    key={column.name} 
-                    className="px-6 py-4 text-sm text-gray-900 group relative"
-                    style={{
-                        backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent',
-                        minWidth: '200px',
-                        maxWidth: '300px'
-                    }}
-                >
-                    <div className="relative overflow-hidden">
-                        <TableCell
-                            column={column}
-                            value={row[column.name]}
-                            editingCell={editingCell?.rowId === row.id && editingCell?.column === column.name ? editingCell : null}
-                            wrappingStyle={columnTextWrapping[column.name] || 'normal'}
-                            onEdit={onEditCell}
-                            onConfirm={onCellEditConfirm}
-                            onCancel={onCellEditCancel}
-                            onCellClick={onCellClick ? () => onCellClick(row.id, column.name, row[column.name]) : undefined}
-                        />
-                    </div>
-                </td>
-            ))}
+            {columns.map((column) => {
+                // Skip columns that are hidden
+                if (columnVisibility[column.name] === false) {
+                    return null;
+                }
+                
+                const wrappingStyle = columnTextWrapping[column.name] || 'normal';
+                
+                return (
+                    <td 
+                        key={column.name} 
+                        className="px-6 py-4 text-sm text-gray-900 group relative"
+                        style={{
+                            backgroundColor: highlightedCells[`${row.id}-${column.name}`] || 'transparent',
+                            ...(wrappingStyle === 'normal' 
+                                ? { width: 'auto', minWidth: '300px' } 
+                                : { minWidth: '200px', maxWidth: '300px' })
+                        }}
+                    >
+                        <div className={`relative ${wrappingStyle === 'normal' ? '' : 'overflow-hidden'}`}>
+                            <TableCell
+                                column={column}
+                                value={row[column.name]}
+                                editingCell={editingCell?.rowId === row.id && editingCell?.column === column.name ? editingCell : null}
+                                wrappingStyle={wrappingStyle}
+                                onEdit={onEditCell}
+                                onConfirm={onCellEditConfirm}
+                                onCancel={onCellEditCancel}
+                                onCellClick={onCellClick ? () => onCellClick(row.id, column.name, row[column.name]) : undefined}
+                            />
+                        </div>
+                    </td>
+                );
+            })}
         </tr>
     );
 } 
