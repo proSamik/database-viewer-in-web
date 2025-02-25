@@ -117,15 +117,13 @@ export const getDefaultValue = (dataType: string): CellValue => {
 };
 
 // Get CSS class for text wrapping
-export const getWrappingClass = (wrapping: 'wrap' | 'truncate' | 'normal'): string => {
+export const getWrappingClass = (wrapping: 'wrap' | 'truncate'): string => {
     switch (wrapping) {
         case 'wrap':
             return 'whitespace-normal break-words';
         case 'truncate':
-            return 'truncate';
-        case 'normal':
-            return 'whitespace-pre-line break-all';
+            return 'truncate overflow-hidden text-ellipsis';
         default:
-            return 'whitespace-nowrap';
+            return 'truncate overflow-hidden text-ellipsis';
     }
 }; 
