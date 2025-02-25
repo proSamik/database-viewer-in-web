@@ -30,47 +30,61 @@ export function TableHeader({
                     </div>
                 </th>
 
-                {columns.map((column) => !columnVisibility[column.name] && (
-                    <th
-                        key={column.name}
-                        className="px-6 py-3 text-xs font-medium text-gray-500 uppercase"
-                    >
-                        <div className="flex flex-col space-y-2">
-                            {/* Header text */}
-                            <div className="text-center">
-                                <button 
-                                    onClick={() => onSort(column.name)}
-                                    className="inline-flex items-center justify-center hover:text-gray-700"
-                                >
-                                    {column.name.split('_').map(word => 
-                                        word.charAt(0).toUpperCase() + word.slice(1)
-                                    ).join(' ')}
-                                    {sortConfig.column === column.name && (
-                                        <span className="ml-1">
-                                            {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
+                {columns.map((column) => {
+                    // Skip columns that are hidden
+                    if (columnVisibility[column.name] === false) {
+                        return null;
+                    }
+                    
+                    const wrappingStyle = columnTextWrapping[column.name] || 'normal';
+                    
+                    return (
+                        <th
+                            key={column.name}
+                            className="px-6 py-3 text-xs font-medium text-gray-500 uppercase"
+                            style={{
+                                ...(wrappingStyle === 'normal' 
+                                    ? { width: 'auto', minWidth: '300px' } 
+                                    : { minWidth: '200px', maxWidth: '300px' })
+                            }}
+                        >
+                            <div className="flex flex-col space-y-2">
+                                {/* Header text */}
+                                <div className="text-center">
+                                    <button 
+                                        onClick={() => onSort(column.name)}
+                                        className="inline-flex items-center justify-center hover:text-gray-700"
+                                    >
+                                        {column.name.split('_').map(word => 
+                                            word.charAt(0).toUpperCase() + word.slice(1)
+                                        ).join(' ')}
+                                        {sortConfig.column === column.name && (
+                                            <span className="ml-1">
+                                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
 
-                            {/* Text wrapping controls */}
-                            <div className="flex items-center justify-center space-x-2 text-xs">
-                                <select
-                                    value={columnTextWrapping[column.name] || 'normal'}
-                                    onChange={(e) => onTextWrappingChange(
-                                        column.name,
-                                        e.target.value as 'wrap' | 'truncate' | 'normal'
-                                    )}
-                                    className="w-20 px-1 py-0.5 border rounded text-xs"
-                                >
-                                    <option value="normal">Show all</option>
-                                    <option value="wrap">Wrap</option>
-                                    <option value="truncate">Truncate</option>
-                                </select>
+                                {/* Text wrapping controls */}
+                                <div className="flex items-center justify-center space-x-2 text-xs">
+                                    <select
+                                        value={wrappingStyle}
+                                        onChange={(e) => onTextWrappingChange(
+                                            column.name,
+                                            e.target.value as 'wrap' | 'truncate' | 'normal'
+                                        )}
+                                        className="w-20 px-1 py-0.5 border rounded text-xs"
+                                    >
+                                        <option value="normal">Show all</option>
+                                        <option value="wrap">Wrap</option>
+                                        <option value="truncate">Truncate</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                    </th>
-                ))}
+                        </th>
+                    );
+                })}
             </tr>
         </thead>
     );
