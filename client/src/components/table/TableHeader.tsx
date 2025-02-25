@@ -7,7 +7,7 @@ interface TableHeaderProps {
     columnTextWrapping: TextWrapping;
     sortConfig: SortConfig;
     onSort: (columnName: string) => void;
-    onTextWrappingChange: (columnName: string, value: 'wrap' | 'truncate' | 'normal') => void;
+    onTextWrappingChange: (columnName: string, value: 'wrap' | 'truncate') => void;
     onColumnResize?: (columnName: string, width: number) => void;
     columnWidths: Record<string, number>;
 }
@@ -36,6 +36,7 @@ export function TableHeader({
     // Handle mouse down on resize handle
     const handleResizeStart = (e: React.MouseEvent, columnName: string) => {
         e.preventDefault();
+        e.stopPropagation();
         const column = columnRefs.current[columnName];
         if (column) {
             setResizingColumn(columnName);
@@ -48,7 +49,7 @@ export function TableHeader({
     useEffect(() => {
         const handleResize = (e: MouseEvent) => {
             if (resizingColumn) {
-                const width = Math.max(100, startWidth + (e.clientX - startX));
+                const width = Math.max(25, startWidth + (e.clientX - startX));
                 if (onColumnResize) {
                     onColumnResize(resizingColumn, width);
                 }
@@ -74,7 +75,7 @@ export function TableHeader({
         <thead className="bg-gray-50">
             <tr>
                 {/* Actions column header */}
-                <th className="w-24 px-4 py-3 sticky left-0 bg-gray-50 z-10 border border-gray-200">
+                <th className="px-2 py-3 sticky left-0 bg-gray-50 z-10 border border-gray-200" style={{ width: '60px', maxWidth: '60px' }}>
                     <div className="text-xs font-medium text-gray-500 uppercase">
                         Actions
                     </div>
@@ -87,7 +88,7 @@ export function TableHeader({
                     }
                     
                     const wrappingStyle = columnTextWrapping[column.name] || 'truncate';
-                    const width = columnWidths[column.name] || (wrappingStyle === 'normal' ? 300 : 100);
+                    const width = columnWidths[column.name] || 100;
                     
                     return (
                         <th
@@ -96,13 +97,15 @@ export function TableHeader({
                             className="px-6 py-3 text-xs font-medium text-gray-500 uppercase relative border border-gray-200"
                             style={{
                                 width: `${width}px`,
-                                minWidth: '100px',
-                                cursor: resizingColumn === column.name ? 'col-resize' : 'default'
+                                minWidth: '25px',
+                                maxWidth: `${width}px`,
+                                cursor: resizingColumn === column.name ? 'col-resize' : 'default',
+                                tableLayout: 'fixed'
                             }}
                         >
                             <div className="flex flex-col space-y-2">
                                 {/* Header text */}
-                                <div className="text-center">
+                                <div className="text-center truncate">
                                     <button 
                                         onClick={() => onSort(column.name)}
                                         className="inline-flex items-center justify-center hover:text-gray-700"
@@ -124,20 +127,19 @@ export function TableHeader({
                                         value={wrappingStyle}
                                         onChange={(e) => onTextWrappingChange(
                                             column.name,
-                                            e.target.value as 'wrap' | 'truncate' | 'normal'
+                                            e.target.value as 'wrap' | 'truncate'
                                         )}
                                         className="w-20 px-1 py-0.5 border rounded text-xs"
                                     >
-                                        <option value="normal">Show all</option>
-                                        <option value="wrap">Wrap</option>
                                         <option value="truncate">Truncate</option>
+                                        <option value="wrap">Wrap</option>
                                     </select>
                                 </div>
                             </div>
                             
                             {/* Column resize handle */}
                             <div 
-                                className="absolute top-0 right-0 h-full w-4 cursor-col-resize group"
+                                className="absolute top-0 right-0 h-full w-4 cursor-col-resize group z-20"
                                 onMouseDown={(e) => handleResizeStart(e, column.name)}
                             >
                                 <div className="absolute right-0 top-0 h-full w-1 bg-gray-300 opacity-0 group-hover:opacity-100"></div>
