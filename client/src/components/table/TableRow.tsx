@@ -23,6 +23,7 @@ interface TableRowProps {
     onCellEditCancel: () => void;
     onCellClick?: (rowId: string | number, column: string, value: CellValue) => void;
     columnWidths: Record<string, number>;
+    actionsColumnVisible?: boolean;
 }
 
 /**
@@ -43,19 +44,22 @@ export function TableRow({
     onCellEditConfirm,
     onCellEditCancel,
     onCellClick,
-    columnWidths
+    columnWidths,
+    actionsColumnVisible = true
 }: TableRowProps) {
     return (
         <tr className="hover:bg-gray-50">
-            <TableActions
-                rowId={row.id}
-                copiedCell={copiedCell}
-                onCopy={onCopyRow}
-                onEdit={onEditRow}
-                onDelete={onDeleteRow}
-                className="border border-gray-200"
-                style={{ width: '60px', maxWidth: '60px' }}
-            />
+            {actionsColumnVisible && (
+                <TableActions
+                    rowId={row.id}
+                    copiedCell={copiedCell}
+                    onCopy={onCopyRow}
+                    onEdit={onEditRow}
+                    onDelete={onDeleteRow}
+                    className="border border-gray-200"
+                    style={{ width: '25px', maxWidth: '25px' }}
+                />
+            )}
 
             {columns.map((column) => {
                 // Skip columns that are hidden
