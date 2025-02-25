@@ -26,9 +26,9 @@ export function TablePagination({
 }: TablePaginationProps) {
     return (
         <div className="bg-white border-t border-gray-200 w-full overflow-hidden">
-            <div className="p-4 flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
+            <div className="p-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
                 {/* Page size and page number controls */}
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4 py-2 px-2">
                     <select
                         value={pageSize}
                         onChange={(e) => {
@@ -62,7 +62,7 @@ export function TablePagination({
                 </div>
 
                 {/* Navigation buttons */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 px-2">
                     <button
                         onClick={() => onPageChange(0)}
                         disabled={page === 0}
