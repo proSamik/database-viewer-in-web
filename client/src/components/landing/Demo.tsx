@@ -15,21 +15,17 @@ export function Demo() {
 
         <div className="mt-16">
           <div className="relative rounded-xl bg-gray-800/50 p-2">
-            {/* Replace with your actual demo screenshot/video */}
+            {/* Embed YouTube video for demo */}
             <div className="aspect-[16/9] overflow-hidden rounded-lg">
-              <div className="bg-gray-800 w-full h-full flex items-center justify-center">
-                <p className="text-gray-400">Demo Preview</p>
-              </div>
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/cn8MsmLzOQQ"
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
             </div>
-          </div>
-
-          <div className="mt-8 flex justify-center gap-4">
-            <Button variant="primary" size="lg">
-              Try Live Demo
-            </Button>
-            <Button variant="secondary" size="lg">
-              Watch Tutorial
-            </Button>
           </div>
         </div>
       </div>
