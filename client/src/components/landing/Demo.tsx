@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/Button';
-
 export function Demo() {
   return (
     <div id="demo" className="relative py-24 overflow-hidden">
