@@ -2,98 +2,72 @@
 
 import Link from 'next/link';
 
-export default function PrivacyPolicy() {
+export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
-      <div className="max-w-4xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <Link href="/" className="text-blue-500 hover:text-blue-400">
-            &larr; Back to Home
+    <div className="min-h-screen bg-gray-900 py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl">
+          <Link href="/" className="text-sm font-semibold leading-6 text-gray-300 hover:text-white">
+            &larr; Back to home
           </Link>
-        </div>
-        
-        <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
-        
-        <div className="prose prose-invert max-w-none">
-          <p className="mb-6">Last updated: {new Date().toLocaleDateString()}</p>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
-          <p>
-            DBViewer ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our database viewing service.
-          </p>
-          <p>
-            Please read this Privacy Policy carefully. By accessing or using our service, you acknowledge that you have read, understood, and agree to be bound by all the terms of this Privacy Policy.
-          </p>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">2. Information We Collect</h2>
-          <h3 className="text-xl font-semibold mt-6 mb-3">2.1 Personal Information</h3>
-          <p>
-            We may collect personal information that you voluntarily provide to us when you register for an account, use our service, or communicate with us. This may include:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>Name and contact information</li>
-            <li>Account credentials</li>
-            <li>Database connection information</li>
-            <li>Payment information</li>
-          </ul>
-          
-          <h3 className="text-xl font-semibold mt-6 mb-3">2.2 Usage Information</h3>
-          <p>
-            We automatically collect certain information about your use of our service, including:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>Log data (IP address, browser type, pages visited)</li>
-            <li>Device information</li>
-            <li>Usage patterns and preferences</li>
-          </ul>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">3. How We Use Your Information</h2>
-          <p>
-            We use the information we collect to:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>Provide, maintain, and improve our service</li>
-            <li>Process your transactions</li>
-            <li>Send you technical notices and support messages</li>
-            <li>Respond to your comments and questions</li>
-            <li>Monitor and analyze trends and usage</li>
-            <li>Detect, investigate, and prevent fraudulent transactions and abuse</li>
-          </ul>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">4. Data Security</h2>
-          <p>
-            We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
-          </p>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">5. Data Retention</h2>
-          <p>
-            We retain your personal information for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law.
-          </p>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">6. Your Rights</h2>
-          <p>
-            Depending on your location, you may have certain rights regarding your personal information, including:
-          </p>
-          <ul className="list-disc pl-6 mb-4">
-            <li>The right to access your personal information</li>
-            <li>The right to correct inaccurate information</li>
-            <li>The right to request deletion of your information</li>
-            <li>The right to object to processing</li>
-            <li>The right to data portability</li>
-          </ul>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">7. Changes to This Privacy Policy</h2>
-          <p>
-            We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
-          </p>
-          
-          <h2 className="text-2xl font-semibold mt-8 mb-4">8. Contact Us</h2>
-          <p>
-            If you have any questions about this Privacy Policy, please contact us at:
-          </p>
-          <p className="mt-2">
-            Email: privacy@dbviewer.com
-          </p>
+          <h1 className="mt-6 text-3xl font-bold tracking-tight text-white sm:text-4xl">Privacy Policy</h1>
+          <div className="mt-6 text-lg leading-8 text-gray-300">
+            <p>Last updated: {new Date().toLocaleDateString()}</p>
+            
+            <h2 className="mt-8 text-2xl font-bold text-white">1. Introduction</h2>
+            <p className="mt-4">
+              Welcome to DBViewer. We respect your privacy and are committed to protecting your personal data. 
+              This privacy policy will inform you about how we look after your personal data when you visit our 
+              website and tell you about your privacy rights and how the law protects you.
+            </p>
+
+            <h2 className="mt-8 text-2xl font-bold text-white">2. Data We Collect</h2>
+            <p className="mt-4">
+              We collect and process the following data:
+            </p>
+            <ul className="mt-4 list-disc pl-6 space-y-2">
+              <li>Connection information (host, port, database name)</li>
+              <li>Usage data (features accessed, time spent)</li>
+              <li>Technical data (IP address, browser type, device information)</li>
+            </ul>
+
+            <h2 className="mt-8 text-2xl font-bold text-white">3. How We Use Your Data</h2>
+            <p className="mt-4">
+              We use your data to:
+            </p>
+            <ul className="mt-4 list-disc pl-6 space-y-2">
+              <li>Provide and maintain our service</li>
+              <li>Improve and personalize your experience</li>
+              <li>Monitor and analyze usage patterns</li>
+              <li>Detect and prevent technical issues</li>
+            </ul>
+
+            <h2 className="mt-8 text-2xl font-bold text-white">4. Data Security</h2>
+            <p className="mt-4">
+              We implement appropriate security measures to protect your data. However, no method of transmission 
+              over the Internet is 100% secure, and we cannot guarantee absolute security.
+            </p>
+
+            <h2 className="mt-8 text-2xl font-bold text-white">5. Your Rights</h2>
+            <p className="mt-4">
+              You have the right to:
+            </p>
+            <ul className="mt-4 list-disc pl-6 space-y-2">
+              <li>Access your personal data</li>
+              <li>Correct inaccurate data</li>
+              <li>Request deletion of your data</li>
+              <li>Object to processing of your data</li>
+            </ul>
+
+            <h2 className="mt-8 text-2xl font-bold text-white">6. Contact Us</h2>
+            <p className="mt-4">
+              If you have any questions about this privacy policy or our privacy practices, please contact us at:
+              <br />
+              <a href="mailto:privacy@dbviewer.com" className="text-blue-500 hover:text-blue-400">
+                privacy@dbviewer.com
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
