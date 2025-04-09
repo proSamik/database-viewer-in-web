@@ -8,20 +8,13 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 const navigation = {
   product: [
     { name: 'Features', href: '#features' },
-    { name: 'Pricing', href: '#pricing' },
     { name: 'Demo', href: '#demo' },
     { name: 'FAQ', href: '#faq' },
   ],
-  company: [
-    { name: 'About', href: '#' },
-    { name: 'Blog', href: '#' },
-    { name: 'Careers', href: '#' },
-    { name: 'Contact', href: '#' },
-  ],
   legal: [
-    { name: 'Privacy', href: '#' },
-    { name: 'Terms', href: '#' },
-    { name: 'License', href: '#' },
+    { name: 'Privacy', href: '/privacy' },
+    { name: 'Terms', href: '/terms' },
+    { name: 'License', href: '/license' },
   ],
   social: [
     {
@@ -82,18 +75,6 @@ export function Footer() {
                 <h3 className="text-sm font-semibold leading-6 text-white">Product</h3>
                 <ul role="list" className="mt-6 space-y-4">
                   {navigation.product.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href} className="text-sm leading-6 text-gray-400 hover:text-white">
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold leading-6 text-white">Company</h3>
-                <ul role="list" className="mt-6 space-y-4">
-                  {navigation.company.map((item) => (
                     <li key={item.name}>
                       <Link href={item.href} className="text-sm leading-6 text-gray-400 hover:text-white">
                         {item.name}
