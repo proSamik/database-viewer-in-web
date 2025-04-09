@@ -30,12 +30,11 @@ export function Header() {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Link href="/console" className="text-gray-300 hover:text-white transition">
-              Sign In
+            <Link href="/console">
+              <Button variant="primary">
+                Get Started
+              </Button>
             </Link>
-            <Button variant="primary">
-              Get Started
-            </Button>
           </div>
         </div>
       </div>
